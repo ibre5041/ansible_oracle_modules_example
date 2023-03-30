@@ -1,0 +1,17 @@
+---
+# defaults file for oracle.db.create.19c
+
+oracle_sid:              "{{ oracle_install_space[oracle_release]['oracle_sid'] }}"
+oracle_db_name:          "{{ oracle_install_space[oracle_release]['oracle_db_name'] }}"
+oracle_unique_name:      "{{ oracle_install_space[oracle_release]['oracle_unique_name'] }}"
+oracle_db_response_file: "{{ oracle_install_space[oracle_release]['oracle_db_response_file'] }}"
+oracle_db_ver_path:      "{{ oracle_install_space[oracle_release]['oracle_db_ver_path'] }}"
+oracle_db_media:         "{{ oracle_install_space[oracle_release]['oracle_db_media'] }}"
+oracle_home:             "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+
+init_undo_list: []
+init_thread_list: []
+init_instance_list: []
+
+init_cluster_database:   "{{ 'cluster_database=true' if oracle_install_type == 'rac' else 'cluster_database=false' }}"
+

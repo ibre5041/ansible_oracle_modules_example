@@ -1,0 +1,45 @@
+responseFileVersion=/oracle/assistants/rspfmt_dbca_response_schema_v12.2.0
+gdbName={{ oracle_sid }}
+sid={{ oracle_sid }}
+
+# 
+databaseConfigType=SI
+#databaseConfigType=RAC
+
+policyManaged=false
+createServerPool=false
+force=false
+createAsContainerDatabase=false
+numberOfPDBs=0
+useLocalUndoForPDBs=true
+
+# uncomment for RAC
+#nodelist={{ db_node_list | default([]) | join(',') }}
+
+templateName={{ oracle_home }}/assistants/dbca/templates/General_Purpose.dbc
+sysPassword={{ password }}
+systemPassword={{ password }}
+emExpressPort=5500
+runCVUChecks=FALSE
+omsPort=0
+dvConfiguration=false
+olsConfiguration=false
+datafileJarLocation={ORACLE_HOME}/assistants/dbca/templates/
+datafileDestination=+XDATA/{DB_UNIQUE_NAME}/
+recoveryAreaDestination=+XDATA
+storageType=ASM
+diskGroupName=+XDATA/{DB_UNIQUE_NAME}/
+recoveryGroupName=+XDATA
+characterSet=AL32UTF8
+nationalCharacterSet=AL16UTF16
+registerWithDirService=false
+listeners=LISTENER
+variables=ORACLE_BASE_HOME={{ oracle_home }},DB_UNIQUE_NAME={{ oracle_sid }},ORACLE_BASE=/oracle/u01/base,PDB_NAME=,DB_NAME={{ oracle_sid }},ORACLE_HOME={{ oracle_home }},SID={{ oracle_sid }}
+#initParams=orcl1.undo_tablespace=UNDOTBS1,orcl2.undo_tablespace=UNDOTBS2,sga_target=4758MB,db_block_size=8192BYTES,cluster_database=true,family:dw_helper.instance_mode=read-only,nls_language=AMERICAN,dispatchers=(PROTOCOL=TCP) (SERVICE=orclXDB),diagnostic_dest={ORACLE_BASE},remote_login_passwordfile=exclusive,db_create_file_dest=+XDATA/{DB_UNIQUE_NAME}/,audit_file_dest={ORACLE_BASE}/admin/{DB_UNIQUE_NAME}/adump,processes=300,pga_aggregate_target=1587MB,orcl1.thread=1,orcl2.thread=2,nls_territory=AMERICA,local_listener=-oraagent-dummy-,db_recovery_file_dest_size=8256MB,open_cursors=300,db_domain=prod.vmware.haf,compatible=19.0.0,db_name=orcl,orcl1.instance_number=1,orcl2.instance_number=2,db_recovery_file_dest=+XDATA,audit_trail=db
+
+initParams={{ init_undo_list | join(',') }},sga_target=4758MB,db_block_size=8192BYTES,{{ init_cluster_database }},family:dw_helper.instance_mode=read-only,nls_language=AMERICAN,dispatchers=(PROTOCOL=TCP) (SERVICE={{ oracle_sid }}XDB),diagnostic_dest={ORACLE_BASE},remote_login_passwordfile=exclusive,db_create_file_dest=+XDATA/{DB_UNIQUE_NAME}/,audit_file_dest={ORACLE_BASE}/admin/{DB_UNIQUE_NAME}/adump,processes=300,pga_aggregate_target=1587MB,{{ init_thread_list | join(',') }},nls_territory=AMERICA,local_listener=-oraagent-dummy-,db_recovery_file_dest_size=8256MB,open_cursors=300,db_domain=prod.vmware.haf,compatible=19.0.0,db_name={{ oracle_sid }},{{ init_instance_list | join(',') }},db_recovery_file_dest=+XDATA,audit_trail=db
+sampleSchema=false
+memoryPercentage=40
+databaseType=MULTIPURPOSE
+automaticMemoryManagement=false
+totalMemory=0

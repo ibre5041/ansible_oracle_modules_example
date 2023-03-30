@@ -1,0 +1,68 @@
+
+- name: Create Database
+  block:
+
+    - name: DB init parameter undo_tablespace (RAC mode)
+      set_fact:
+        init_undo_list: "{{ init_undo_list + [ oracle_sid + ((play_hosts.index(item) + 1)|string) + '.undo_tablespace=UNDOTBS' + ((play_hosts.index(item) + 1)|string) ] }}"
+      with_items: "{{ ansible_play_batch }}"
+      when: first_rac_node is defined
+
+    - name: DB init parameter undo_tablespace (Standalone mode)
+      set_fact:
+        init_undo_list: "{{ [ oracle_sid + '.undo_tablespace=UNDOTBS1' ] }}"
+      when: first_rac_node is not defined
+
+    - name: Init Parameter undo_tablespace
+      debug:
+        msg: "{{ init_undo_list | join(',') }}"
+
+    - name: DB init parameter thread (RAC mode)
+      set_fact:
+        init_thread_list: "{{ init_thread_list + [ oracle_sid + ((play_hosts.index(item) + 1)|string) + '.thread=' + ((play_hosts.index(item) + 1)|string) ] }}"
+      with_items: "{{ ansible_play_batch }}"
+      when: first_rac_node is defined
+
+    - name: Init Parameter undo_tablespace
+      debug:
+        msg: "{{ init_thread_list | join(',') }}"
+
+    - name: DB init parameter instance_number (RAC mode)
+      set_fact:
+        init_instance_list: "{{ init_instance_list + [ oracle_sid + ((play_hosts.index(item) + 1)|string) + '.instance_number=' + ((play_hosts.index(item) + 1)|string) ] }}"
+      with_items: "{{ ansible_play_batch }}"
+      when: first_rac_node is defined
+
+    - name: Init Parameter undo_tablespace
+      debug:
+        msg: "{{ init_instance_list | join(',') }}"
+
+    - name: Init Parameter cluster_database 
+      debug:
+        msg: "init_cluster_database: {{ init_cluster_database }}"
+
+    - name: Install dbca.rsp
+      template:
+        src:   "{{ oracle_db_response_file }}"
+        dest:  "{{ oracle_install_dir_temp }}/"
+        mode: '0640'
+        owner: "{{ oracle_os_user }}"
+        group: "{{ oracle_os_group }}"
+
+    - name: "Create database"
+      shell: "./dbca -ignorePreReqs -ignorePrereqFailure -silent -createDatabase -responseFile {{ oracle_install_dir_temp }}/{{ oracle_db_response_file }}"
+      args:
+        chdir: "{{ oracle_home }}/bin/"
+        creates: "{{ oracle_install_dir_base }}/cfgtoollogs/dbca/{{ oracle_sid }}/{{ oracle_sid }}.log"
+      ignore_errors: true
+      register: db_create_out
+
+    - debug: 
+        msg: "Return code is {{ db_create_out }}"
+      when: db_create_out.rc >= 0
+    - fail: 
+        msg: "Return code is {{ db_create_out.rc }}"
+      when: db_create_out.rc > 0
+
+  become: yes
+  become_user: oracle

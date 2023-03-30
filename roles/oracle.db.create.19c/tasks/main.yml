@@ -1,0 +1,31 @@
+---
+# tasks file for oracle.db.create.19c
+
+- name: Oracle datafiles location
+  file:
+    path: "{{ oracle_datafiles }}"
+    state: directory
+    owner: "{{ oracle_os_user }}"
+    group: "{{ oracle_os_group }}"
+    mode: '0775'
+  when: oracle_install_type == 'standalone'
+
+- name: Oracle flash recovery area
+  file:
+    path: "{{ oracle_flasharea }}"
+    state: directory
+    owner: "{{ oracle_os_user }}"
+    group: "{{ oracle_os_group }}"
+    mode: '0775'
+  when: oracle_install_type == 'standalone'
+
+- name: check if database was created
+  stat:
+    path: "{{ oracle_install_dir_base }}/cfgtoollogs/dbca/{{ oracle_sid }}/{{ oracle_sid }}.log"
+  register: dcdba_log
+
+- debug:
+    msg: "Database exists: {{ dcdba_log.stat.exists }}"
+
+- include: create.database.yml
+  when: dcdba_log.stat.exists != True and ( first_rac_node is not defined or first_rac_node == ansible_hostname)
