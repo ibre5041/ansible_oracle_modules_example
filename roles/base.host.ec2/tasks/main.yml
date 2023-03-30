@@ -1,0 +1,28 @@
+---
+
+# tasks file for base.host
+
+- name: Clean yum repos
+  shell: "yum clean all"
+  changed_when: false
+  tags: [clean]
+
+- name: Epel repo
+  template:
+    src: epel-el8.repo
+    dest: /etc/yum.repos.d/epel-el8.repo
+  when: epel_repo_mirror | default('') | length > 0
+  tags: [packages]
+  
+- name: Base packages
+  yum: 
+    name: wget,strace,psmisc,nfs-utils,emacs-nox,patch,gcc,xauth,nvme-cli,lvm2
+    state: latest
+    lock_timeout: 160
+    disable_gpg_check: yes 
+  tags: [packages,slow]
+
+- name: Clean yum repos
+  shell: "yum clean all"
+  changed_when: false
+  tags: [clean]

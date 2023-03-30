@@ -1,0 +1,21 @@
+
+- block:
+    - name: Download install package {{ image_name }}
+      get_url:
+        url: "{{ url_base }}/{{ image_name }}"
+        dest: "{{ oracle_install_dir_temp }}/"
+        mode: '0640'
+
+    - name: unzip install package {{ image_name }}
+      unarchive:
+        src:  "{{ oracle_install_dir_temp }}/{{ image_name }}"
+        dest: "{{ oracle_home }}/"
+        remote_src: yes
+
+    - name: delete install .zip package {{ image_name }}
+      file:
+        path: "{{ oracle_install_dir_temp }}/{{ image_name }}"
+        state: absent
+
+  become: yes
+  become_user: "{{ oracle_os_user }}"

@@ -1,0 +1,34 @@
+---
+
+# TODO 
+#      r/o OH    ?
+#      hugepages
+#      tuned-adm profile oracle
+
+- hosts: all
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  roles:
+  - role: base.host.ec2
+    tags: [ base, basehost ]
+    
+  - role: base.oracle.ec2
+    tags: [ base, baseoracle ]
+
+  # included from oracle.restart.19c.ec2
+  #- role: oracle.asm.disks.ec2
+  #  tags: [ oracle, oraclerestart, oracleasm ]
+    
+  - role: oracle.restart.19c.ec2
+    tags: [ oracle, oraclerestart ]
+    
+  - role: oracle.db.home.19c.ec2
+    tags: [ oracle, oracledbhome ]
+    
+  - role: oracle.db.create.19c
+    tags: [ oracle, oracledb ]
+  
+  - role: oracle.post.install
+    tags: [ oracle, post ]    
