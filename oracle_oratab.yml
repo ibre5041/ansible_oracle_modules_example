@@ -1,0 +1,80 @@
+---
+
+# Modify sample inventory file: inventory/sample.restart.inventory.yml
+#
+# Install cx_Oracle python drivers in DB server
+#  pip3 install cx_Oracle
+#   or as oracle user:
+#  pip3 install --user cx_Oracle
+#
+# Execute as:
+#   ansible-playbook oracle_oratab.yml -i inventory/sample.restart.inventory.yml
+#
+
+# Segment 1 - detect databases in each server, create a target for each database
+- name: Inmemory inventory creation.
+  hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    # Uncomment this ORACLE_SID list if you want to constrain this playbook to certain databases only
+    # - db_list: [ TEST19C ]
+  tasks:
+    - oracle_oratab:
+        writable_only: true
+      register: sid_list
+
+    - debug:
+        var: sid_list
+
+    # Strip the host string and parse it to the in memory inventory.
+    # All the hosts will be added to the group,'server'. The playbook will be played in the group.
+    - name: Database target
+      add_host:
+        # add a new target, member of oracledabase group
+        groups: [oracle, oracledabase]
+        name: '{{ inventory_hostname }}_{{ sid_list.oracle_list[item].ORACLE_SID }}'
+        hostname: '{{ inventory_hostname }}'
+
+        ansible_connection: ssh
+        ansible_ssh_user: "{{ ansible_ssh_user }}"
+        ansible_port: "{{ ansible_port }}"
+        ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file }}"
+        ansible_host: "{{ ansible_host }}"
+        # Pass these dynamically detected values to a new target
+        # One target is added per a database detected on host
+        ORACLE_HOME:  "{{ sid_list.oracle_list[item].ORACLE_HOME }}"
+        ORACLE_SID:   "{{ sid_list.oracle_list[item].ORACLE_SID }}"
+        oracle_owner: "{{ sid_list.oracle_list[item].owner }}"
+      loop: "{{ db_list | default(sid_list.oracle_list.keys())}}"
+      changed_when: False
+
+# Segment 2
+- name: Oracle DB Management
+  # continue play, only members of oracledabase group are allower
+  # these have variables dynamically set: ORACLE_HOME, ORACLE_SID, oracle_owner
+  hosts: oracledabase
+  collections:
+    - ibre5041.ansible_oracle_modules  
+  gather_facts: true
+  tasks:
+    
+    - name: Query database
+      oracle_sql:
+        mode: sysdba
+        sql: select host_name, instance_name from v$instance;
+      register: dbinfo
+
+    - name: dbinfo
+      debug:
+        var: dbinfo
+
+  environment:                                                                                                                  
+    ORACLE_HOME: "{{ ORACLE_HOME }}"
+    ORACLE_SID:  "{{ ORACLE_SID }}"        
+  become: yes
+  become_user: "{{ oracle_owner }}"
+  become_method: sudo  
