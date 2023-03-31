@@ -1,0 +1,31 @@
+---
+
+# Tasks that cannot be delegated:
+# Some tasks always execute on the controller. These tasks, including include, add_host, and debug, cannot be delegated.
+
+# Ansible bugs:
+# Please make add_host not bypass the host loop #2963
+# add_host doesn't run on parallel hosts #5145
+
+# Long story short add_host contains BYPASS_HOST_LOOP = True,
+# So it runs on the 1st node of the ansible playlist ONLY
+# This nasty trick with nested loop iterates over all hosts and all thier gathered facts
+- name: Add database for host {{ outer_item }}  
+  add_host:
+    groups: [oracle, oracledatabase]
+    name: "{{ outer_item }}_{{ item }}"
+    hostname: "{{ outer_item }}"
+
+    ansible_connection: ssh
+    ansible_ssh_user: "{{ ansible_ssh_user }}"
+    ansible_port: "{{ ansible_port }}"
+    ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file }}"
+    ansible_host: "{{ outer_item }}"
+          
+    ORACLE_HOME:  "{{ hostvars[outer_item]['sid_list']['oracle_list'][item].ORACLE_HOME }}"
+    ORACLE_SID:   "{{ hostvars[outer_item]['sid_list']['oracle_list'][item].ORACLE_SID }}"
+    oracle_owner: "{{ hostvars[outer_item]['sid_list']['oracle_list'][item].owner }}"
+  delegate_to: 127.0.0.1
+  changed_when: False
+  loop: "{{ hostvars[outer_item]['sid_list']['oracle_list'].keys() }}"
+  

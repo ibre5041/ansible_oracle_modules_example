@@ -30,27 +30,17 @@
     - debug:
         var: sid_list
 
-    # Strip the host string and parse it to the in memory inventory.
-    # All the hosts will be added to the group,'server'. The playbook will be played in the group.
-    - name: Database target
-      add_host:
-        # add a new target, member of oracledabase group
-        groups: [oracle, oracledabase]
-        name: '{{ inventory_hostname }}_{{ sid_list.oracle_list[item].ORACLE_SID }}'
-        hostname: '{{ inventory_hostname }}'
+    - debug:
+        msg: "{{ ansible_play_hosts | map('extract', hostvars, 'sid_list') | map(attribute='oracle_list') }}"
+      run_once: yes
+        
+    # See notes in add_db_targets.yml
+    - include_tasks: add_db_targets.yml
+      loop: "{{ ansible_play_hosts | sort() }}"
+      loop_control:
+        loop_var: outer_item
+      run_once: yes
 
-        ansible_connection: ssh
-        ansible_ssh_user: "{{ ansible_ssh_user }}"
-        ansible_port: "{{ ansible_port }}"
-        ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file }}"
-        ansible_host: "{{ ansible_host }}"
-        # Pass these dynamically detected values to a new target
-        # One target is added per a database detected on host
-        ORACLE_HOME:  "{{ sid_list.oracle_list[item].ORACLE_HOME }}"
-        ORACLE_SID:   "{{ sid_list.oracle_list[item].ORACLE_SID }}"
-        oracle_owner: "{{ sid_list.oracle_list[item].owner }}"
-      loop: "{{ db_list | default(sid_list.oracle_list.keys())}}"
-      changed_when: False
 
 # Segment 2
 - name: Oracle DB Management
