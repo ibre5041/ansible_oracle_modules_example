@@ -46,7 +46,7 @@
 - name: Oracle DB Management
   # continue play, only members of oracledabase group are allower
   # these have variables dynamically set: ORACLE_HOME, ORACLE_SID, oracle_owner
-  hosts: oracledabase
+  hosts: oracledatabase
   collections:
     - ibre5041.ansible_oracle_modules  
   gather_facts: true
