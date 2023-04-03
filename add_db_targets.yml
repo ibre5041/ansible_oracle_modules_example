@@ -20,7 +20,7 @@
     ansible_ssh_user: "{{ ansible_ssh_user }}"
     ansible_port: "{{ ansible_port }}"
     ansible_ssh_private_key_file: "{{ ansible_ssh_private_key_file }}"
-    ansible_host: "{{ outer_item }}"
+    ansible_host: "{{ hostvars[outer_item]['ansible_host'] }}"
           
     ORACLE_HOME:  "{{ hostvars[outer_item]['sid_list']['oracle_list'][item].ORACLE_HOME }}"
     ORACLE_SID:   "{{ hostvars[outer_item]['sid_list']['oracle_list'][item].ORACLE_SID }}"
