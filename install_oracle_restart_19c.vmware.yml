@@ -13,10 +13,7 @@
   become_method: sudo
 
   roles:
-    # - role: base_host_ec2
-    #   tags: [ base, basehost ]
-    
-    - role: base_oracle_ec2
+    - role: base_oracle_vmware
       tags: [ base, baseoracle ]
 
     # included from oracle_restart_19c
