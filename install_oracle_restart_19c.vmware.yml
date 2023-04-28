@@ -21,11 +21,11 @@
     #  tags: [ oracle, oraclerestart, oracleasm ]
     
     - role: oracle_restart_19c
-      oracle_gi_media: "grid_home_2022_Oct.zip"
+      oracle_gi_media: "LINUX.X64_193000_grid_home.zip"
       tags: [ oraclerestart ]
     
     - role: oracle_db_home
-      oracle_db_media: "db_home_2022_Oct.zip"
+      oracle_db_media: "db_home_19_12.zip"
       tags: [ oracle, oracledbhome ]
     
     # - role: oracle.db.create.19c
