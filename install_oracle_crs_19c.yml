@@ -17,6 +17,7 @@
     tags: [ base, baseoracle ]
 
   - role: oracle_crs_19c
+    oracle_gi_media: grid_home_19_6.zip
     tags: [ oracle, oraclecrs ]
 
   - role: oracle_db_home
