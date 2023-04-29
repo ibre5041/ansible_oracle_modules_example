@@ -1,0 +1,17 @@
+---
+
+# TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
+
+- hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules    
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  any_errors_fatal: true
+  roles:    
+  #- role: base_host
+  - role: base_oracle_vmware
+  - role: oracle_crs_19c
+  - role: oracle_post_install
