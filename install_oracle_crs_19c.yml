@@ -12,6 +12,53 @@
   any_errors_fatal: true
   roles:    
   #- role: base_host
+
   - role: base_oracle_vmware
+    tags: [ base, baseoracle ]
+
   - role: oracle_crs_19c
+    tags: [ oracle, oraclecrs ]
+
+  - role: oracle_db_home
+    oracle_db_media: "db_home_19_12.zip"
+    tags: [ oracle, oracledbhome ]
+
   - role: oracle_post_install
+    tags: [ oraclepost ]
+
+  tasks:
+    - name: create database
+      oracle_db:
+        #oracle_home: "{{ oracle_home }}"
+        oracle_home: "/oracle/u01/product/19.17.0.0"
+        db_name: 'TEST19C'
+        sid: 'TEST19C'
+        db_unique_name: 'TEST19C_1'
+        sys_password: X43ofljfksjfkhfr3fkh
+        #system_password:
+        #dbsnmp_password:
+        #template:
+        db_options:
+          - JSERVER:true
+          - ORACLE_TEXT:false
+          - IMEDIA:false
+          - CWMLITE:false
+          - SPATIAL:false
+          - OMS:false
+          - APEX:false
+          - DV:false
+        initparams:
+          - memory_target=0
+          - memory_max_target=0
+          - sga_target=1500MB
+          - sga_max_size=1500MB
+        storage_type: ASM
+        datafile_dest: +XDATA
+        recoveryfile_dest: +XDATA
+        #state: absent
+        state: present
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      #become_user: "oracle"
+      become: yes
+      when: ansible_hostname == first_rac_node
