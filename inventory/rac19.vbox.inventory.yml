@@ -1,0 +1,25 @@
+all:
+  hosts:
+    rac1:
+      oracle_crs_vip: rac1-vip
+    rac2:
+      oracle_crs_vip: rac2-vip
+  children:
+    oracle:
+      hosts:
+        rac1:
+        rac2:
+      vars:
+        oracle_dir_base: /install
+        oracle_gi_media: grid_home_2022_Oct.zip
+        oracle_release: 19c
+        oracle_install_type: rac
+        oracle_crs_scan: rac-scan        
+  vars:
+    cluster:
+      oracle_cluster_name: rac19-cluster
+      addresses:
+        rac1-vip: 192.168.8.103
+        rac2-vip: 192.168.8.104
+        rac-scan: [192.168.8.105, 192.168.8.106, 192.168.8.107]
+

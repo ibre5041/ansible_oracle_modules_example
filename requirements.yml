@@ -2,7 +2,5 @@
 collections:
   - name: https://github.com/ibre5041/ansible_oracle_modules.git
     type: git
-    version: main
+    version: devel
 
- # - name: ibre5041.ansible_oracle_modules
-  #   file: 
