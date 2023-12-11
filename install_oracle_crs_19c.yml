@@ -1,7 +1,8 @@
 ---
 
 # TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
-
+# TODO: cvuqdisk-1.0.10-1.rpm install on both nodes
+# TODO: policycoreutils-python-2.5-17, sysstat, nfs-utils
 - hosts: all
   collections:
     - ibre5041.ansible_oracle_modules    
@@ -12,6 +13,7 @@
   any_errors_fatal: true
   roles:    
   - role: default_vars_only
+    tags: [always,default_vars_only]
 
   - role: base_oracle_vmware
     tags: [ base, baseoracle ]
@@ -22,11 +24,11 @@
     when: is_vbox_environment
     
   - role: oracle_crs_19c
-    oracle_gi_media: grid_home_19_6.zip
+    oracle_gi_media: grid_home_19_21.zip
     tags: [ oracle, oraclecrs ]
 
   - role: oracle_db_home
-    oracle_db_media: "db_home_2022_Oct.zip"
+    oracle_db_media: "db_home_19_12.zip"
     tags: [ oracle, oracledbhome ]
 
   - role: oracle_post_install
@@ -37,7 +39,7 @@
     - name: create database
       oracle_db:
         #oracle_home: "{{ oracle_home }}"
-        oracle_home: "/oracle/u01/product/19.17.0.0"
+        oracle_home: "/oracle/u01/product/19.12.0.0"
         db_name: 'TEST19C'
         sid: 'TEST19C'
         db_unique_name: 'TEST19C_1'
