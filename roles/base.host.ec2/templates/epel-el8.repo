@@ -1,6 +1,0 @@
-[epel-el8]
-name=epel-el8
-enabled=0
-gpgcheck=0
-baseurl={{ epel_repo_mirror }}
-

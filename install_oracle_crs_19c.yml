@@ -11,23 +11,29 @@
 
   any_errors_fatal: true
   roles:    
-  #- role: base_host
+  - role: default_vars_only
 
   - role: base_oracle_vmware
     tags: [ base, baseoracle ]
-
+    when: is_vmware_environment
+    
+  - role: base_oracle_vbox
+    tags: [ base, baseoracle ]
+    when: is_vbox_environment
+    
   - role: oracle_crs_19c
     oracle_gi_media: grid_home_19_6.zip
     tags: [ oracle, oraclecrs ]
 
   - role: oracle_db_home
-    oracle_db_media: "db_home_19_12.zip"
+    oracle_db_media: "db_home_2022_Oct.zip"
     tags: [ oracle, oracledbhome ]
 
   - role: oracle_post_install
     tags: [ oraclepost ]
 
   tasks:
+      
     - name: create database
       oracle_db:
         #oracle_home: "{{ oracle_home }}"

@@ -14,7 +14,7 @@ all:
       oracle_release: 19c
       oracle_install_type: restart
       oracle_url_base: http://kicklinux/oracle/19c/
-      oracle_gi_image: LINUX.X64_193000_grid_home.zip
+      oracle_gi_media: LINUX.X64_193000_grid_home.zip
   children:
     oracle:
       vars:
