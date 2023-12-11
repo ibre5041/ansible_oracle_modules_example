@@ -2,12 +2,12 @@ all:
   hosts:
     rac19-b-node-1:
       address: 192.168.8.50
-      listener: rac19-b-lis-1
+      oracle_crs_node_vip: rac19-b-lis-1
       oracle_release: 19c
       oracle_install_type: rac
     rac19-b-node-2:
       address: 192.168.8.51
-      listener: rac19-b-lis-2
+      oracle_crs_node_vip: rac19-b-lis-2
       oracle_release: 19c
       oracle_install_type: rac
 #    rac19-b-node-3:
@@ -64,6 +64,6 @@ all:
 #        rac19-b-lis-3: 192.168.8.56
         rac19-b-scan: [192.168.8.57, 192.168.8.58, 192.168.8.59]
 
-    scan: rac19-b-scan
+    oracle_crs_scan: rac19-b-scan
     oracle_password: Xb6a5ed2ff29f98d
-    template: "RHEL8 Template"
+    template: "RHEL9 Template"
