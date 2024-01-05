@@ -46,19 +46,19 @@
         #dbsnmp_password:
         #template:
         db_options:
-          - JSERVER:true
-          - ORACLE_TEXT:false
-          - IMEDIA:false
-          - CWMLITE:false
-          - SPATIAL:false
-          - OMS:false
-          - APEX:false
-          - DV:false
+          JSERVER: false
+          ORACLE_TEXT: false
+          IMEDIA: false
+          CWMLITE: false
+          SPATIAL: false
+          OMS: false
+          APEX: false
+          DV: false
         initparams:
-          - memory_target=0
-          - memory_max_target=0
-          - sga_target=1500MB
-          - sga_max_size=1500MB
+          memory_target: 0
+          memory_max_target: 0
+          sga_target: 1500MB
+          sga_max_size: 1500MB
         storage_type: ASM
         datafile_dest: +XDATA
         recoveryfile_dest: +XDATA
@@ -66,6 +66,5 @@
         state: present
       tags: [oracledb]
       become_user: "{{ oracle_os_user }}"
-      #become_user: "oracle"
       become: yes
       when: ansible_hostname == first_rac_node
