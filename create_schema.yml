@@ -60,7 +60,7 @@
         default_tablespace: app
         state: present
 
-    - oracle_grants:
+    - oracle_grant:
         mode: sysdba        
         schema: myschema
         state: present
