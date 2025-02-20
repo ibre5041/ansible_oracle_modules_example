@@ -27,5 +27,5 @@
     oracle_owner: "{{ hostvars[outer_item]['sid_list']['oracle_list'][item].owner }}"
   delegate_to: 127.0.0.1
   changed_when: False
-  loop: "{{ hostvars[outer_item]['sid_list']['oracle_list'].keys() }}"
-  
+  loop: "{{ hostvars[outer_item]['sid_list']['oracle_list'].keys() | list }}"
+
