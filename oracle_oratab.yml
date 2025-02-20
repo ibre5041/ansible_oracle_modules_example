@@ -3,9 +3,9 @@
 # Modify sample inventory file: inventory/sample.restart.inventory.yml
 #
 # Install cx_Oracle python drivers in DB server
-#  pip3 install cx_Oracle
+#  pip3 install oracledb
 #   or as oracle user:
-#  pip3 install --user cx_Oracle
+#  pip3 install --user oracledb
 #
 # Execute as:
 #   ansible-playbook oracle_oratab.yml -i inventory/sample.restart.inventory.yml
