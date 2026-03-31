@@ -21,11 +21,11 @@
       #  tags: [ oracle, oraclerestart, oracleasm ]
     
     - role: oracle_restart_19c
-      oracle_gi_media: "LINUX.X64_193000_grid_home.zip"
+      oracle_gi_media: "{{ oracle_gi_image | default('LINUX.X64_193000_grid_home.zip') }}"
       tags: [ oraclerestart ]
     
     - role: oracle_db_home
-      oracle_db_media: "db_home_19_12.zip"
+      oracle_db_media: "{{ oracle_db_image | default('LINUX.X64_193000_db_home.zip') }}"
       tags: [ oracle, oracledbhome ]
     
       # - role: oracle.db.create.19c
@@ -37,8 +37,7 @@
   tasks:
     - name: create database
       oracle_db:
-        #oracle_home: "{{ oracle_home }}"
-        oracle_home: "/oracle/u01/product/19.17.0.0"
+        oracle_home: "/oracle/u01/product/{{ oracle_db_ver_path }}"
         db_name: 'TEST19C'
         sid: 'TEST19C'
         db_unique_name: 'TEST19C_1'
@@ -47,19 +46,19 @@
         #dbsnmp_password:
         #template:
         db_options:
-          - JSERVER:true
-          - ORACLE_TEXT:false
-          - IMEDIA:false
-          - CWMLITE:false
-          - SPATIAL:false
-          - OMS:false
-          - APEX:false
-          - DV:false
+          SERVER: true
+          ORACLE_TEXT: false
+          IMEDIA: false
+          CWMLITE: false
+          SPATIAL: false
+          OMS: false
+          APEX: false
+          DV: false
         initparams:
-          - memory_target=0
-          - memory_max_target=0
-          - sga_target=1500MB
-          - sga_max_size=1500MB
+          memory_target: 0
+          memory_max_target: 0
+          sga_target: 1500MB
+          sga_max_size: 1500MB
         storage_type: ASM
         datafile_dest: +XDATA
         recoveryfile_dest: +XDATA
