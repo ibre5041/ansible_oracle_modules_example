@@ -4,7 +4,7 @@ all:
   hosts:
     # NOTE: change "db_server_hostname" to match your server hostname
     rhel9a-19-restart:
-      address: 192.168.8.116
+      address: 192.168.8.228
       ansible_connection: ssh
       ansible_ssh_user: root
       ansible_port: 22
@@ -16,13 +16,12 @@ all:
       oracle_release: 19c
       oracle_install_type: restart
       oracle_url_base: http://kicklinux9/oracle/19c/
-      oracle_db_ver_path: 19.0.0.0
+      oracle_db_ver_path: 19.26.0.0
       oracle_gi_image: grid_home_19_26.zip
       oracle_db_image: db_home_19_26.zip
   children:
     oracle:
       vars:
-        oracle_db_ver_path: 19.26.0.0
   vars:
     scsi:
     - adapter:
