@@ -1,0 +1,26 @@
+---
+
+# TODO 
+#      r/o OH ?
+#      hugepages
+#      tuned-adm profile oracle
+
+- hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules    
+  become: yes
+  become_user: root
+  become_method: sudo
+
+  roles:
+    - role: base_oracle_vmware
+      tags: [ base, baseoracle ]
+
+    - role: oracle_restart_26ai
+      tags: [ oraclerestart ]
+    
+    - role: oracle_db_home
+      tags: [ oracle, oracledbhome ]
+    
+    - role: oracle_post_install
+      tags: [ oraclepost ]
