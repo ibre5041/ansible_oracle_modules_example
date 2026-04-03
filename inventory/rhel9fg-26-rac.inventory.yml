@@ -1,16 +1,16 @@
 all:
   hosts:
-    rhel9d-rac-a:
-      address: 192.168.8.70
-      oracle_crs_node_vip: rac26ai-a-vip-1
-    rhel9e-rac-a:
-      address: 192.168.8.71
-      oracle_crs_node_vip: rac26ai-a-vip-2
+    rhel9f-rac-b:
+      address: 192.168.8.80
+      oracle_crs_node_vip: rac26ai-b-vip-1
+    rhel9g-rac-b:
+      address: 192.168.8.81
+      oracle_crs_node_vip: rac26ai-b-vip-2
   children:
     oracle:
       hosts:
-        rhel9d-rac-a:
-        rhel9e-rac-a:
+        rhel9f-rac-b:
+        rhel9g-rac-b:
       vars:
         oracle_release: 26ai
         oracle_install_type: rac
@@ -44,17 +44,17 @@ all:
       datastore: KINGSTON
 
     cluster:
-      oracle_cluster_name: rac26ai-a
+      oracle_cluster_name: rac26ai-b
       disks:
         - disk:
             size: 8G
             bus: 1
             count: 4
       addresses:
-        rac26ai-a-vip-1: 192.168.8.75
-        rac26ai-a-vip-2: 192.168.8.76
-        rac26ai-a-scan: [192.168.8.72, 192.168.8.73, 192.168.8.74]
+        rac26ai-b-vip-1: 192.168.8.85
+        rac26ai-b-vip-2: 192.168.8.86
+        rac26ai-b-scan: [192.168.8.82, 192.168.8.83, 192.168.8.84]
 
-    oracle_crs_scan: rac26ai-a-scan
+    oracle_crs_scan: rac26ai-b-scan
     oracle_password: Xb6a5ed2ff29f98d
     template: "RHEL9 Template"

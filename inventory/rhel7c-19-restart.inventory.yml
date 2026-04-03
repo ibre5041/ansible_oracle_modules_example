@@ -13,7 +13,7 @@ all:
       # These variables are used by install roles
       oracle_release: 19c
       oracle_install_type: restart
-      oracle_url_base: http://kicklinux/oracle/19c/
+      oracle_url_base: http://kicklinux9/oracle/19c/
       oracle_gi_media: LINUX.X64_193000_grid_home.zip
   children:
     oracle:

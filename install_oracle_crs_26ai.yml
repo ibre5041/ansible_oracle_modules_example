@@ -53,15 +53,13 @@
           APEX: false
           DV: false
         initparams:
-          memory_target: 0
-          memory_max_target: 0
-          sga_target: 1500MB
-          sga_max_size: 1500MB
+          sga_target: 4G
+          sga_max_size: 4G
         storage_type: ASM
         datafile_dest: +XDATA
         recoveryfile_dest: +XDATA
-        #state: absent
-        state: present
+        state: absent
+        #state: present
         cdb: true
       tags: [oracledb]
       become_user: "{{ oracle_os_user }}"

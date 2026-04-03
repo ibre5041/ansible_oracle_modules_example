@@ -49,7 +49,7 @@ all:
       network: "Public Network"
     - adapter:
       pciSlotNumber: 224
-      network: "Barn Network"      
+      network: "Barn Network"
     ram: 32G
     cpu: 4
 

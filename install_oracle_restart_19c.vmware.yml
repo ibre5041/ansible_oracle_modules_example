@@ -66,5 +66,4 @@
         state: present
       tags: [oracledb]
       become_user: "{{ oracle_os_user }}"
-      #become_user: "oracle"
       become: yes

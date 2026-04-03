@@ -12,7 +12,7 @@ all:
       oracle_install_type: rac
 #    rac19-b-node-3:
 #      address: 192.168.8.52
-#      listener: rac19-b-lis-3
+#      oracle_crs_node_vip: rac19-b-lis-3
 #      oracle_release: 19c
 #      oracle_install_type: rac
   children:
@@ -22,9 +22,9 @@ all:
         rac19-b-node-2:
 #        rac19-b-node-3:
       vars:
-        oracle_url_base: http://kicklinux/oracle/19c/
-        oracle_gi_image: LINUX.X64_193000_grid_home.zip
+
   vars:
+    oracle_url_base: http://kicklinux9/oracle/19c/
     scsi:
     - adapter:
         pciSlotNumber: 16
