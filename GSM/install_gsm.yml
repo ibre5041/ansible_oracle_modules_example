@@ -1,0 +1,107 @@
+---
+
+# TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
+
+- hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules    
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    oracle_db_ver_path: 23.26.1.0.0
+    oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+    
+  any_errors_fatal: true
+  roles:    
+  - role: default_vars_only
+    tags: [always,default_vars_only]
+
+  - role: base_oracle_vmware
+    tags: [ base, baseoracle ]
+    when: is_vmware_environment
+    
+  - role: base_oracle_vbox
+    tags: [ base, baseoracle ]
+    when: is_vbox_environment
+
+  tasks:
+  - name: "Directory {{ oracle_home }}"
+    file:
+      path: "{{ oracle_home }}"
+      state: directory
+      owner: "{{ oracle_os_user }}"
+      group: "{{ oracle_os_group }}"
+      #recurse: yes
+      mode: '0755'
+    
+
+
+  - name: check if Oracle GSM  unpacked
+    stat:
+      path: "{{ oracle_home }}/bin/"
+    register: gsm_unpacked
+    tags: [package,slow]
+    
+  - name: Include Role oracle.download.package  
+    include_role:
+      name: oracle_download_package
+    vars:
+      # Pass these variables to included role
+      # oracle_home: "{{ oracle_home }}"
+      # oracle_dir_base: "/tmp/"
+      # oracle_url_base:   "{{ oracle_media_url_base }}"
+      oracle_image_name: LINUX.X64_2326100_gsm_home.zip
+      #oracle_install_dir_temp:
+      oracle_url_base: "http://kicklinux9/oracle/26ai/"
+    tags: [package,slow]
+    when: gsm_unpacked.stat.exists != True
+    
+  - name: "Install Epel package rlwrap"
+    yum:
+      name: rlwrap
+      state: latest
+    tags: [package,slow]
+    ignore_errors: true
+
+  - name: Set Oracle env in oracle profile (using ~)
+    become: true
+    become_user: "{{ oracle_os_user }}"
+    ansible.builtin.lineinfile:
+      path: ~/.bash_profile
+      line: "export ORACLE_HOME={{ oracle_home }}"
+      regexp: '^export ORACLE_HOME='
+      create: true
+    tags: [setup]
+
+  - name: Ensure PATH includes ORACLE_HOME/bin in oracle .bash_profile
+    become: true
+    become_user: "{{ oracle_os_user }}"    
+    ansible.builtin.lineinfile:
+      path: ~/.bash_profile
+      regexp: '^PATH=\$\{PATH\}:\$\{ORACLE_HOME\}/bin$'
+      line: 'PATH=${PATH}:${ORACLE_HOME}/bin'
+      create: true
+    tags: [setup]
+
+  - name: Ensure PATH includes ORACLE_HOME/bin in oracle .bash_profile
+    become: true
+    become_user: "{{ oracle_os_user }}"    
+    ansible.builtin.lineinfile:
+      path: ~/.bash_profile
+      regexp: '^PATH=\$\{PATH\}:\$\{ORACLE_HOME\}/bin$'
+      line: 'PATH=${PATH}:${ORACLE_HOME}/bin'
+      create: true
+    tags: [setup]
+
+  - name: Ensure PATH includes ORACLE_HOME/bin in oracle .bash_profile
+    become: true
+    become_user: "{{ oracle_os_user }}"    
+    ansible.builtin.lineinfile:
+      path: ~/.bashrc
+      regexp: 'alias.*GDSCTL'
+      line: "alias GDSCTL='rlwrap gdsctl'"
+      create: true
+    tags: [setup]
+    
+

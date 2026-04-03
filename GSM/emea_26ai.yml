@@ -1,0 +1,47 @@
+---
+
+# TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
+
+- hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules    
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    oracle_db_ver_path: 23.26.1.0.0
+  any_errors_fatal: true
+
+  roles:    
+  - role: default_vars_only
+    tags: [always,default_vars_only]
+
+  tasks:      
+    - name: create database
+      oracle_db:
+        oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+        db_name: 'EMEA'
+        sid: 'EMEA'
+        db_unique_name: 'EMEA_AT_EMEA'
+        sys_password: X43ofljfksjfkhfr3fkh
+        db_options:
+          JSERVER: false
+          ORACLE_TEXT: false
+          IMEDIA: false
+          CWMLITE: false
+          SPATIAL: false
+          OMS: false
+          APEX: false
+          DV: false
+        initparams:
+          sga_target: 4G
+          sga_max_size: 4G
+        storage_type: ASM
+        datafile_dest: +XDATA
+        recoveryfile_dest: +XDATA
+        state: present
+        cdb: true
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      become: yes
+      when: ansible_hostname == first_rac_node

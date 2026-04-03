@@ -1,0 +1,39 @@
+---
+
+# TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
+
+- hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules    
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    oracle_db_ver_path: 23.26.1.0.0
+  any_errors_fatal: true
+  roles:    
+  - role: default_vars_only
+    tags: [always,default_vars_only]
+
+  tasks:
+  - name: Create listener LISTENER_EMEA
+    oracle_crs_listener:
+      name: LISTENER_EMEA
+      endpoints: TCP:1530
+      enabled: true
+      state: started
+    tags: [oracle_listener]
+    become_user: "{{ oracle_os_user }}"
+    become: yes
+    when: ansible_hostname == first_rac_node
+
+  - name: Create listener LISTENER_APAC
+    oracle_crs_listener:
+      name: LISTENER_APAC
+      endpoints: TCP:1531
+      enabled: true
+      state: started
+    tags: [oracle_listener]
+    become_user: "{{ oracle_os_user }}"
+    become: yes
+    when: ansible_hostname == first_rac_node
