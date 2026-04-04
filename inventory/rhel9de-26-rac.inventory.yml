@@ -57,4 +57,4 @@ all:
 
     oracle_crs_scan: rac26ai-a-scan
     oracle_password: Xb6a5ed2ff29f98d
-    template: "RHEL9 Template"
+    template: "RHEL9Template"

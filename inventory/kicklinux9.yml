@@ -1,0 +1,32 @@
+all:
+  hosts:
+    kicklinux9:
+      address: 192.168.8.201
+
+  vars:    
+    scsi:
+    - adapter:
+        pciSlotNumber: 16
+    - adapter:
+        pciSlotNumber: 32
+    disks:
+    - disk: rootdg
+      size: 10g
+      bus: 0
+    - disk: appdg
+      size: 60g
+      bus: 0
+    network:
+    - adapter:
+      pciSlotNumber: 192
+      network: "Public Network"
+    - adapter:
+      pciSlotNumber: 224
+      network: "Barn Network"      
+    ram: 16G
+    cpu: 2
+
+    vmware:
+      vm_folder: VmFolder
+      datastore: WD1T
+    template: "RHEL9Template"

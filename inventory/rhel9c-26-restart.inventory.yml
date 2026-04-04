@@ -56,4 +56,4 @@ all:
     vmware:
       vm_folder: VmFolder
       datastore: KINGSTON
-    template: "RHEL9 Template"
+    template: "RHEL9Template"

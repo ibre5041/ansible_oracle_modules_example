@@ -44,4 +44,4 @@ all:
     vmware:
       vm_folder: VmFolder
       datastore: WD4TRED
-    template: "RHEL9 Template"
+    template: "RHEL9Template"

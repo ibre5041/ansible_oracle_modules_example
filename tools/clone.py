@@ -330,7 +330,7 @@ if __name__ == "__main__":
 
     for machine in c.machines:
         dns_for_vm(machine)
-        clone_vm(service_instance=si, machine=machine, template_name=(machine.template or 'RHEL8 Template'))
+        clone_vm(service_instance=si, machine=machine, template_name=(machine.template or 'RHEL9Template'))
         for disk in machine.disks:
             if disk['bus'] == 0:
                 continue

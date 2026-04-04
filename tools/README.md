@@ -84,7 +84,7 @@ These scripts can also create/delete DNS records for VMs
         },
         "oracle_crs_scan": "rac19-b-scan",
         "oracle_password": "Xb6a5ed2ff29f98d",
-        "template": "RHEL9 Template",
+        "template": "RHEL9Template",
         "oracle_url_base": "http://kicklinux9/oracle/19c/",
         "oracle_gi_image": "LINUX.X64_193000_grid_home.zip",
         "inventory_file": "/root/ansible_oracle_modules_example/inventory/rac19-b.050.inventory.yml",
@@ -193,7 +193,7 @@ These scripts can also create/delete DNS records for VMs
         },
         "oracle_crs_scan": "rac19-b-scan",
         "oracle_password": "Xb6a5ed2ff29f98d",
-        "template": "RHEL9 Template",
+        "template": "RHEL9Template",
         "oracle_url_base": "http://kicklinux9/oracle/19c/",
         "oracle_gi_image": "LINUX.X64_193000_grid_home.zip",
         "inventory_file": "/root/ansible_oracle_modules_example/inventory/rac19-b.050.inventory.yml",
@@ -258,8 +258,8 @@ These scripts can also create/delete DNS records for VMs
     2024-01-05 21:03:47,548 - utils - DEBUG - create_dns_record:  A   DNS update response: NOERROR QR
     2024-01-05 21:03:47,548 - utils - DEBUG - create_dns_record: DNS record PTR
     2024-01-05 21:03:47,549 - utils - DEBUG - create_dns_record:  PTR DNS update response: NOERROR QR
-    2024-01-05 21:03:47,636 - clone - DEBUG - clone_vm: cloning template RHEL9 Template into rac19-b-node-1...
-    2024-01-05 21:03:56,720 - clone - DEBUG - clone_vm: rac19-b-node-1 created as clone of RHEL9 Template
+    2024-01-05 21:03:47,636 - clone - DEBUG - clone_vm: cloning template RHEL9Template into rac19-b-node-1...
+    2024-01-05 21:03:56,720 - clone - DEBUG - clone_vm: rac19-b-node-1 created as clone of RHEL9Template
     2024-01-05 21:03:56,737 - clone - DEBUG - clone_vm: VM CPU: 2
     2024-01-05 21:03:56,737 - clone - DEBUG - clone_vm: VM RAM: 16384
     2024-01-05 21:03:56,903 - clone - DEBUG - clone_vm: Added SCSI adapter: 1 pciSlotNumber: 32
@@ -316,8 +316,8 @@ These scripts can also create/delete DNS records for VMs
     2024-01-05 21:04:15,684 - utils - DEBUG - create_dns_record:  A   DNS update response: NOERROR QR
     2024-01-05 21:04:15,684 - utils - DEBUG - create_dns_record: DNS record PTR
     2024-01-05 21:04:15,686 - utils - DEBUG - create_dns_record:  PTR DNS update response: NOERROR QR
-    2024-01-05 21:04:15,775 - clone - DEBUG - clone_vm: cloning template RHEL9 Template into rac19-b-node-2...
-    2024-01-05 21:04:30,743 - clone - DEBUG - clone_vm: rac19-b-node-2 created as clone of RHEL9 Template
+    2024-01-05 21:04:15,775 - clone - DEBUG - clone_vm: cloning template RHEL9Template into rac19-b-node-2...
+    2024-01-05 21:04:30,743 - clone - DEBUG - clone_vm: rac19-b-node-2 created as clone of RHEL9Template
     2024-01-05 21:04:30,814 - clone - DEBUG - clone_vm: VM CPU: 2
     2024-01-05 21:04:30,814 - clone - DEBUG - clone_vm: VM RAM: 16384
     2024-01-05 21:04:31,002 - clone - DEBUG - clone_vm: Added SCSI adapter: 1 pciSlotNumber: 32
