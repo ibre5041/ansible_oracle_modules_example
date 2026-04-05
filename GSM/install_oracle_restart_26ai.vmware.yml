@@ -1,0 +1,36 @@
+---
+
+# TODO 
+#      r/o OH ?
+#      hugepages
+#      tuned-adm profile oracle
+
+- hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules    
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    oracle_db_ver_path: 23.26.1.0.0
+  any_errors_fatal: true
+  roles:
+  - role: default_vars_only
+    tags: [always,default_vars_only]
+    
+  - role: base_oracle_vmware
+    tags: [ base, baseoracle ]
+    when: is_vmware_environment
+
+  - role: base_oracle_vbox
+    tags: [ base, baseoracle ]
+    when: is_vbox_environment
+    
+  - role: oracle_restart_26ai
+    tags: [ oracle, oraclerestart ]
+    
+  - role: oracle_db_home
+    tags: [ oracle, oracledbhome ]
+    
+  - role: oracle_post_install
+    tags: [ oraclepost ]

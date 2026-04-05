@@ -9,21 +9,32 @@
   become_user: root
   become_method: sudo
   vars:
+    password: AcrorA123456__
     oracle_db_ver_path: 23.26.1.0.0
+    oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+    oracle_sid: "APAC1"
+
   any_errors_fatal: true
 
   roles:    
   - role: default_vars_only
     tags: [always,default_vars_only]
-  
+
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID:  "{{ oracle_sid }}"
+    
   tasks:      
     - name: create database
       oracle_db:
-        oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+        oracle_home: "{{ oracle_home }}"
         db_name: 'APAC'
         sid: 'APAC'
         db_unique_name: 'APAC_AT_APAC'
-        sys_password: X43ofljfksjfkhfr3fkh
+        sys_password: "{{ password }}"
+        #
+        flashback: true
+        archivelog: true        
         db_options:
           JSERVER: false
           ORACLE_TEXT: false
@@ -39,9 +50,21 @@
         storage_type: ASM
         datafile_dest: +XDATA
         recoveryfile_dest: +XDATA
-        state: present
+        state: "{{ oracle_db_state | default('present') }}"
         cdb: true
       tags: [oracledb]
       become_user: "{{ oracle_os_user }}"
       become: yes
-      when: ansible_hostname == first_rac_node
+
+    - name: Creates a pdb PAPAC
+      oracle_pdb:
+        mode: sysdba
+        #
+        pdb_name: "PAPAC"
+        state: opened
+        pdb_admin_username: admin
+        pdb_admin_password: "{{ password }}"
+        roles: [CONNECT, PDB_DBA]
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      become: true

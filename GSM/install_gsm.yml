@@ -104,4 +104,22 @@
       create: true
     tags: [setup]
     
+  - name: Ensure alias GDSCTL in .bashrc
+    become: true
+    become_user: "{{ oracle_os_user }}"    
+    ansible.builtin.lineinfile:
+      path: ~/.bashrc
+      regexp: 'alias GDSCTL'
+      line: "alias GDSCTL='rlwrap gdsctl'"
+      create: true
+    tags: [setup]
 
+  - name: Ensure alias SQLPLUS in .bashrc
+    become: true
+    become_user: "{{ oracle_os_user }}"    
+    ansible.builtin.lineinfile:
+      path: ~/.bashrc
+      regexp: 'alias SQLPLUS'
+      line: "alias SQLPLUS='rlwrap sqlplus'"
+      create: true
+    tags: [setup]

@@ -1,0 +1,52 @@
+all:
+  hosts:
+    rhel9d:
+      address: 192.168.8.70
+      oracle_release: 26ai
+      oracle_install_type: restart
+      
+  children:
+    oracle:
+      hosts:
+        rhel9d:
+      vars:
+
+  vars:
+    oracle_url_base: http://kicklinux9/oracle/26ai/
+    scsi:
+    - adapter:
+        pciSlotNumber: 16
+    - adapter:
+        pciSlotNumber: 32
+    disks:
+    - disk: rootdg
+      size: 10g
+      bus: 0
+    - disk: appdg
+      size: 100g
+      bus: 0
+    network:
+    - adapter:
+      pciSlotNumber: 192
+      network: "Public Network"
+    - adapter:
+      pciSlotNumber: 224
+      network: "Barn Network"      
+    ram: 16G
+    cpu: 2
+
+    vmware:
+      vm_folder: VmFolder
+      datastore: KINGSTON
+
+    cluster:
+      oracle_cluster_name: restart
+      disks:
+        - disk:
+            size: 8G
+            bus: 1
+            count: 4
+      addresses:
+
+    oracle_password: AcrorA123456__
+    template: "RHEL9Template"

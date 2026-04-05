@@ -4,26 +4,37 @@
 
 - hosts: all
   collections:
-    - ibre5041.ansible_oracle_modules    
-  become: yes
+    - ibre5041.ansible_oracle_modules
+  become: true
   become_user: root
   become_method: sudo
   vars:
+    password: AcrorA123456__
     oracle_db_ver_path: 23.26.1.0.0
+    oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+    oracle_sid: "CATALOG"
+
   any_errors_fatal: true
 
-  roles:    
-  - role: default_vars_only
-    tags: [always,default_vars_only]
-  
-  tasks:      
+  roles:
+    - role: default_vars_only
+      tags: [always, default_vars_only]
+
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID:  "{{ oracle_sid }}"
+
+  tasks:
     - name: create database
       oracle_db:
-        oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+        oracle_home: "{{ oracle_home }}"
         db_name: 'CATALOG'
         sid: 'CATALOG'
         db_unique_name: 'CATALOG_RW'
-        sys_password: X43ofljfksjfkhfr3fkh
+        sys_password: "{{ password }}"
+        #
+        flashback: true
+        archivelog: true
         db_options:
           JSERVER: false
           ORACLE_TEXT: false
@@ -36,12 +47,155 @@
         initparams:
           sga_target: 4G
           sga_max_size: 4G
+          wallet_root: '/home/oracle/wallet.catalog'
+          tde_configuration: 'KEYSTORE_CONFIGURATION=FILE'
         storage_type: ASM
         datafile_dest: +XDATA
         recoveryfile_dest: +XDATA
-        state: present
+        state: "{{ oracle_db_state | default('present') }}"
         cdb: true
+      tags: [oracledb, dbca]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: Ensure oracle parameters are set
+      oracle_parameter:
+        mode: sysdba
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        scope: "{{ item.scope }}"
+        sid: '*'
+      loop:
+        - name: wallet_root
+          value: '/home/oracle/wallet.catalog'
+          scope: spfile
+        - name: tde_configuration
+          value: 'KEYSTORE_CONFIGURATION=FILE'
+          scope: both
+        - name: open_links
+          value: 30
+          scope: spfile
+        - name: open_links_per_instance
+          value: 30
+          scope: spfile
+        - name: standby_file_management
+          value: auto
+          scope: both
+        - name: global_names
+          value: FALSE
+          scope: both
+        - name: db_files
+          value: 1024
+          scope: spfile
+      tags: [oracledb, keystore]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      register: oracle_parameter_results
+
+    - name: restart database
+      oracle_db:
+        oracle_home: "{{ oracle_home }}"
+        db_name: 'CATALOG'
+        db_unique_name: 'CATALOG_RW'
+        #sys_password: "{{ password }}"
+        state: "{{ oracle_db_state | default('restarted') }}"
       tags: [oracledb]
       become_user: "{{ oracle_os_user }}"
-      become: yes
-      when: ansible_hostname == first_rac_node
+      become: true
+      when: oracle_parameter_results.changed
+
+    - name: Create wallet directory
+      file:
+        path: /home/oracle/wallet.catalog
+        state: directory
+        owner: "{{ oracle_os_user }}"
+        group: oinstall
+        mode: '0700'
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: Create keystore
+      oracle_sql:
+        mode: sysdba
+        sql: |
+          administer key management create keystore identified by "{{ password }}";
+      ignore_errors: true
+      tags: [oracledb, keystore]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      when: oracle_parameter_results.changed
+
+    - name: Open keystore
+      oracle_sql:
+        mode: sysdba
+        sql: |
+          administer key management set keystore open identified by "{{ password }}" container=all;
+      ignore_errors: true
+      tags: [oracledb, keystore]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      when: oracle_parameter_results.changed
+
+    - name: Set master key
+      oracle_sql:
+        mode: sysdba
+        sql: |
+          administer key management set key identified by "{{ password }}" with backup container=all;
+      ignore_errors: true
+      tags: [oracledb, keystore]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      when: oracle_parameter_results.changed
+
+    - name: Enable auto-login keystore
+      oracle_sql:
+        mode: sysdba
+        sql: |
+          administer key management create auto_login keystore from keystore identified by "{{ password }}" container=all;
+      ignore_errors: true
+      tags: [oracledb, keystore]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      when: oracle_parameter_results.changed
+
+    - name: Validate keystore configuration
+      oracle_sql:
+        mode: sysdba
+        sql: |
+          select wrl_type, wrl_parameter, status from v$encryption_wallet;
+      register: keystore_status
+      tags: [oracledb, keystore]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: Display keystore status
+      debug:
+        msg: "{{ keystore_status.data }}"
+      tags: [oracledb, keystore]
+
+    - name: Ensure gsmcatuser is unlocked and password is set
+      oracle_user:
+        mode: sysdba
+        schema: gsmcatuser
+        schema_password: "{{ password }}"
+        state: present
+        locked: false
+        container: all
+      tags: [oracledb, user]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: Create a pdb PCATALOG
+      oracle_pdb:
+        mode: sysdba
+        #
+        pdb_name: "PCATALOG"
+        state: opened
+        pdb_admin_username: admin
+        pdb_admin_password: "{{ password }}"
+        roles: [CONNECT, PDB_DBA]
+      tags: [oracledb, pdb]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
