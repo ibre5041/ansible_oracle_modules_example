@@ -1,0 +1,156 @@
+---
+
+# TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
+
+- hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules    
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    password: AcrorA123456__
+    oracle_db_ver_path: 23.26.1.0.0
+    oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+    #oracle_sid: "APAC"
+
+  any_errors_fatal: true
+
+  roles:    
+  - role: default_vars_only
+    tags: [always,default_vars_only]
+
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+    ORACLE_SID:  "{{ oracle_sid }}"
+    
+  tasks:      
+    - name: "{{ oracle_sid }} create database"
+      oracle_db:
+        oracle_home: "{{ oracle_home }}"
+        db_name: '{{ oracle_sid }}'
+        sid: '{{ oracle_sid }}'
+        db_unique_name: '{{ oracle_sid }}_AT_{{ oracle_sid }}'
+        sys_password: "{{ password }}"
+        #
+        flashback: true
+        archivelog: true
+        force_logging: true
+        db_options:
+          JSERVER: false
+          ORACLE_TEXT: false
+          IMEDIA: false
+          CWMLITE: false
+          SPATIAL: false
+          OMS: false
+          APEX: false
+          DV: false
+        initparams:
+          sga_target: 4G
+          sga_max_size: 4G
+        storage_type: ASM
+        datafile_dest: +XDATA
+        recoveryfile_dest: +XDATA
+        state: "{{ oracle_db_state | default('present') }}"
+        cdb: true
+      tags: [oracledb, dbca]
+      become_user: "{{ oracle_os_user }}"
+      become: yes
+
+    - name: "{{ oracle_sid }} Ensure oracle parameters are set"
+      oracle_parameter:
+        mode: sysdba
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        scope: "{{ item.scope }}"
+        sid: '*'
+      loop:
+        - { name: open_links, value: 30, scope: spfile }
+        - { name: open_links_per_instance, value: 30, scope: spfile }
+        - { name: standby_file_management, value: auto, scope: both }
+        - { name: global_names, value: 'FALSE', scope: both }
+        - { name: db_files, value: 1024, scope: spfile }
+        - { name: dg_broker_start, value: 'TRUE', scope: both }
+      tags: [oracledb, keystore]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      register: oracle_parameter_results
+
+    - name: "{{ oracle_sid }} Ensure gsmrootuser is unlocked and password is set"
+      oracle_user:
+        mode: sysdba
+        schema: "{{ item }}"
+        schema_password: "{{ password }}"
+        state: present
+        locked: false
+      loop:
+        - gsmrootuser
+        - gsmuser
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: "{{ oracle_sid }} Grant SYSDG and SYSBACKUP to gsmuser/gsmrootuser"
+      oracle_grant:
+        mode: sysdba
+        grantee: "{{ item }}"
+        grants:
+          - SYSDG
+          - SYSBACKUP
+        state: present
+      loop:
+        - gsmrootuser
+        - gsmuser
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      
+    - name: "{{ oracle_sid }} Creates a pdb P{{ oracle_sid }}"
+      oracle_pdb:
+        mode: sysdba
+        #
+        pdb_name: "P{{ oracle_sid }}"
+        state: opened
+        pdb_admin_username: admin
+        pdb_admin_password: "{{ password }}"
+        roles: [CONNECT, PDB_DBA]
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: "{{ oracle_sid }} Grant SYSDG and SYSBACKUP to gsmuser"
+      oracle_grant:
+        mode: sysdba
+        session_container: "P{{ oracle_sid }}"
+        grantee: GSMUSER
+        grants:
+          - SYSDG
+          - SYSBACKUP
+        state: present
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: GSMADMIN_INTERNAL
+      oracle_grant:
+        mode: sysdba
+        session_container: "P{{ oracle_sid }}"
+        grantee: GSMADMIN_INTERNAL
+        directory_privs:
+          - read,write:data_pump_dir
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      
+    - name: "{{ oracle_sid }} restart database"
+      oracle_db:
+        oracle_home: "{{ oracle_home }}"
+        db_name: '{{ oracle_sid }}'
+        db_unique_name: '{{ oracle_sid }}_AT_{{ oracle_sid }}'
+        #sys_password: "{{ password }}"
+        state: "{{ oracle_db_state | default('restarted') }}"
+      tags: [oracledb]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      #when: oracle_parameter_results.changed

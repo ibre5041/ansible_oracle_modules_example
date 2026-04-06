@@ -22,9 +22,19 @@
 
   environment:
     ORACLE_HOME: "{{ oracle_home }}"
-    ORACLE_SID:  "{{ oracle_sid }}"
+    ORACLE_SID:  "CATALOG"
 
   tasks:
+    - name: Create wallet directory
+      file:
+        path: /home/oracle/wallet.catalog
+        state: directory
+        group: oinstall
+        mode: '0700'
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      tags: [oracledb, dbca]
+      
     - name: create database
       oracle_db:
         oracle_home: "{{ oracle_home }}"
@@ -35,6 +45,7 @@
         #
         flashback: true
         archivelog: true
+        force_logging: true
         db_options:
           JSERVER: false
           ORACLE_TEXT: false
@@ -67,27 +78,12 @@
         scope: "{{ item.scope }}"
         sid: '*'
       loop:
-        - name: wallet_root
-          value: '/home/oracle/wallet.catalog'
-          scope: spfile
-        - name: tde_configuration
-          value: 'KEYSTORE_CONFIGURATION=FILE'
-          scope: both
-        - name: open_links
-          value: 30
-          scope: spfile
-        - name: open_links_per_instance
-          value: 30
-          scope: spfile
-        - name: standby_file_management
-          value: auto
-          scope: both
-        - name: global_names
-          value: FALSE
-          scope: both
-        - name: db_files
-          value: 1024
-          scope: spfile
+        - { name: wallet_root, value: '/home/oracle/wallet.catalog', scope: spfile }
+        - { name: open_links, value: 30, scope: spfile }
+        - { name: open_links_per_instance, value: 30, scope: spfile }
+        - { name: standby_file_management, value: auto, scope: both }
+        - { name: global_names, value: 'FALSE', scope: both }
+        - { name: db_files, value: 1024, scope: spfile }
       tags: [oracledb, keystore]
       become_user: "{{ oracle_os_user }}"
       become: true
@@ -103,18 +99,20 @@
       tags: [oracledb]
       become_user: "{{ oracle_os_user }}"
       become: true
-      when: oracle_parameter_results.changed
+      #when: oracle_parameter_results.changed
 
-    - name: Create wallet directory
-      file:
-        path: /home/oracle/wallet.catalog
-        state: directory
-        owner: "{{ oracle_os_user }}"
-        group: oinstall
-        mode: '0700'
+    - name: Ensure oracle parameters are set
+      oracle_parameter:
+        mode: sysdba
+        name: tde_configuration
+        value: "KEYSTORE_CONFIGURATION=FILE"
+        state: present
+        scope: both
+        sid: '*'
+      tags: [oracledb, keystore]
       become_user: "{{ oracle_os_user }}"
       become: true
-
+      
     - name: Create keystore
       oracle_sql:
         mode: sysdba
@@ -124,7 +122,7 @@
       tags: [oracledb, keystore]
       become_user: "{{ oracle_os_user }}"
       become: true
-      when: oracle_parameter_results.changed
+      #when: oracle_parameter_results.changed
 
     - name: Open keystore
       oracle_sql:
@@ -135,7 +133,7 @@
       tags: [oracledb, keystore]
       become_user: "{{ oracle_os_user }}"
       become: true
-      when: oracle_parameter_results.changed
+      #when: oracle_parameter_results.changed
 
     - name: Set master key
       oracle_sql:
@@ -146,18 +144,18 @@
       tags: [oracledb, keystore]
       become_user: "{{ oracle_os_user }}"
       become: true
-      when: oracle_parameter_results.changed
+      #when: oracle_parameter_results.changed
 
     - name: Enable auto-login keystore
       oracle_sql:
         mode: sysdba
         sql: |
-          administer key management create auto_login keystore from keystore identified by "{{ password }}" container=all;
+          administer key management create auto_login keystore from keystore identified by "{{ password }}";
       ignore_errors: true
       tags: [oracledb, keystore]
       become_user: "{{ oracle_os_user }}"
       become: true
-      when: oracle_parameter_results.changed
+      #when: oracle_parameter_results.changed
 
     - name: Validate keystore configuration
       oracle_sql:
