@@ -25,10 +25,10 @@
     ORACLE_SID:  "CATALOG"
 
   tasks:
-    - name: Create wallet directory
+    - name: Create wallet directory /home/oracle/wallet.catalog
       file:
         path: /home/oracle/wallet.catalog
-        state: directory
+        state: "{{ oracle_db_state | default('directory') }}"
         group: oinstall
         mode: '0700'
       become_user: "{{ oracle_os_user }}"
@@ -197,3 +197,36 @@
       become_user: "{{ oracle_os_user }}"
       become: true
 
+    - name: "{{ oracle_sid }} tnsnames.ora"
+      oracle_tnsnames:
+        path: "{{ oracle_home }}/network/admin/tnsnames.ora"
+        alias: "{{ item.name }}"
+        whole_value: "{{ item.value }}"
+      loop:
+        - { name: CATALOG, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=CATALOG)))'}
+        - { name: PCATALOG, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9e)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=PCATALOG)))'}
+      tags: [files]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: Create auto-login keystore
+      oracle_wallet:
+        mode: sysdba
+        state: present
+        auto_login: auto_login
+        keystore_password: "{{ password }}"
+        container: all
+      tags: [wallet]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+        
+    - name: Create auto-login keystore
+      oracle_wallet:
+        mode: sysdba
+        state: open
+        auto_login: auto_login
+        keystore_password: "{{ password }}"
+        container: all        
+      tags: [wallet]
+      become_user: "{{ oracle_os_user }}"
+      become: true
