@@ -1,14 +1,15 @@
 all:
   hosts:
-    rhel9e:
-      address: 192.168.8.71
+    gsm-shard-emea:
+      address: 192.168.8.223
+      oracle_release: 26ai
+      oracle_install_type: restart
+      
   children:
     oracle:
       hosts:
-        rhel9e:
+        gsm-shard-emea:
       vars:
-        oracle_release: 26ai
-        oracle_install_type: restart
 
   vars:
     oracle_url_base: http://kicklinux9/oracle/26ai/

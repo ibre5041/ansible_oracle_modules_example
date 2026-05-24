@@ -1,0 +1,30 @@
+# EMEA_AT_EMEA
+add cdb -pwd AcrorA123456__ -connect (DESCRIPTION=(CONNECT_TIMEOUT=5)(TRANSPORT_CONNECT_TIMEOUT=3)(RETRY_COUNT=3)(ADDRESS_LIST=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d.prod.vmware.haf)(PORT=1530)))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_EMEA)))
+
+add shard -pwd AcrorA123456__ -shardspace S_EMEA -region R_EMEA -cdb emea_at_emea -deploy_as PRIMARY -connect (DESCRIPTION=(CONNECT_TIMEOUT=5)(TRANSPORT_CONNECT_TIMEOUT=3)(RETRY_COUNT=3)(ADDRESS_LIST=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d.prod.vmware.haf)(PORT=1530)))(CONNECT_DATA=(SERVICE_NAME=pemea)))
+
+#modify shard -shard db01_fra1_pdb01 -ons 62000 -scan ...
+validate
+config cdb
+config cdb -cdb dbfra
+config shard
+#deploy -validate_network
+
+# APAC_AT_APAC
+add cdb -pwd AcrorA123456__ -connect (DESCRIPTION=(CONNECT_TIMEOUT=5)(TRANSPORT_CONNECT_TIMEOUT=3)(RETRY_COUNT=3)(ADDRESS_LIST=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9e.prod.vmware.haf)(PORT=1531)))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_APAC)))
+
+add shard -pwd AcrorA123456__ -shardspace S_APAC -region R_APAC -cdb apac_at_apac -deploy_as PRIMARY -connect (DESCRIPTION=(CONNECT_TIMEOUT=5)(TRANSPORT_CONNECT_TIMEOUT=3)(RETRY_COUNT=3)(ADDRESS_LIST=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9e.prod.vmware.haf)(PORT=1531)))(CONNECT_DATA=(SERVICE_NAME=papac)))
+
+validate
+config cdb
+config cdb -cdb dbfra
+config shard
+#deploy -validate_network
+
+# APAC_AT_EMEA
+add cdb -pwd AcrorA123456__ -connect (DESCRIPTION=(CONNECT_TIMEOUT=5)(TRANSPORT_CONNECT_TIMEOUT=3)(RETRY_COUNT=3)(ADDRESS_LIST=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d.prod.vmware.haf)(PORT=1531)))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_EMEA)))
+
+add shard -pwd AcrorA123456__ -shardspace S_APAC -region R_EMEA -cdb apac_at_emea -deploy_as ACTIVE_STANDBY -connect (DESCRIPTION=(CONNECT_TIMEOUT=5)(TRANSPORT_CONNECT_TIMEOUT=3)(RETRY_COUNT=3)(ADDRESS_LIST=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d.prod.vmware.haf)(PORT=1531)))(CONNECT_DATA=(SERVICE_NAME=papac)))
+
+
+

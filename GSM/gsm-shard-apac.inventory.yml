@@ -1,14 +1,14 @@
 all:
   hosts:
-    rhel9d:
-      address: 192.168.8.70
+    gsm-shard-apac:
+      address: 192.168.8.224
       oracle_release: 26ai
       oracle_install_type: restart
       
   children:
     oracle:
       hosts:
-        rhel9d:
+        gsm-shard-apac:
       vars:
 
   vars:

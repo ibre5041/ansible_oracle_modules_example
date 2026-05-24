@@ -1,0 +1,10 @@
+run
+{
+	duplicate target database for standby from active database
+	spfile
+	set db_name='APAC'
+	set db_unique_name='APAC_AT_EMEA'
+	set standby_file_management='AUTO'
+        set instance_name='APAC'
+	nofilenamecheck;
+}

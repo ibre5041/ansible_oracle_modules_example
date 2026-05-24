@@ -83,7 +83,7 @@
         - { name: global_names, value: 'FALSE', scope: both }
         - { name: db_files, value: 1024, scope: spfile }
         - { name: dg_broker_start, value: 'TRUE', scope: both }
-        - { name: local_listener, value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_fqdn }})(PORT={{ shard_listener_port }}))', scope: both }
+        - { name: local_listener, value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ shard_listener_port }}))', scope: both }
       tags: [oracledb, keystore]
       become_user: "{{ oracle_os_user }}"
       become: true
@@ -123,7 +123,9 @@
         mode: sysdba
         #
         pdb_name: "P{{ oracle_sid }}"
-        state: opened
+        state: present
+        open: true
+        save_state: true
         pdb_admin_username: admin
         pdb_admin_password: "{{ password }}"
         roles: [CONNECT, PDB_DBA]
@@ -182,10 +184,10 @@
         alias: "{{ item.name }}"
         whole_value: "{{ item.value }}"
       loop:
-        - { name: EMEA_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_EMEA)))'}
-        - { name: EMEA_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9e)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_APAC)))'}
-        - { name: APAC_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9e)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_APAC)))'}
-        - { name: APAC_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_EMEA)))'}
+        - { name: EMEA_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_EMEA)))'}
+        - { name: EMEA_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_APAC)))'}
+        - { name: APAC_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_APAC)))'}
+        - { name: APAC_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_EMEA)))'}
       tags: [files]
       become_user: "{{ oracle_os_user }}"
       become: true
