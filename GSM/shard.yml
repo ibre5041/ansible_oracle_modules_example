@@ -58,6 +58,26 @@
       become_user: "{{ oracle_os_user }}"
       become: yes
 
+    - name: Manage online redologs
+      oracle_redo:
+        mode: sysdba
+        log_type: redo
+        size: 200M
+        groups: 4
+      tags: [oracledb, redo]
+      become_user: "{{ oracle_os_user }}"
+      become: yes
+
+    - name: Manage standby redologs
+      oracle_redo:
+        mode: sysdba
+        log_type: standby
+        size: 200M
+        groups: 5
+      tags: [oracledb, redo]
+      become_user: "{{ oracle_os_user }}"
+      become: yes
+      
     - name: 'Create listener LISTENER_{{ oracle_sid }}'
       oracle_crs_listener:
         name: 'LISTENER_{{ oracle_sid }}'
@@ -188,6 +208,20 @@
         - { name: EMEA_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_APAC)))'}
         - { name: APAC_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_APAC)))'}
         - { name: APAC_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_EMEA)))'}
+        - { name: LISTENER_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT=1530)))'}
+        - { name: LISTENER_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT=1531)))'}
+      tags: [files]
+      become_user: "{{ oracle_os_user }}"
+      become: true
+
+    - name: "{{ oracle_sid }} tnsnames.ora"
+      oracle_tnsnames:
+        path: "/home/oracle/.tnsnames.ora"
+        alias: "{{ item.name }}"
+        whole_value: "{{ item.value }}"
+      loop:
+        - { name: EMEA_AT_APAC_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apax)(PORT=1530))(CONNECT_DATA=(SID=EMEA)(UR=A)))'}
+        - { name: APAC_AT_EMEA_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1531))(CONNECT_DATA=(SID=APAC)(UR=A)))'}
       tags: [files]
       become_user: "{{ oracle_os_user }}"
       become: true
