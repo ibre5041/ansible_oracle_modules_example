@@ -12,10 +12,14 @@
     oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
 
     oracle_sid: EMEA
+    source_region: EMEA
+    target_region: "{{ region | upper }}"
+
     duplicate_db_name:        "{{ oracle_sid }}"
-    duplicate_db_unique_name: "{{ oracle_sid }}_AT_{{ region | upper }}"
-    duplicate_primary_tns:    "{{ oracle_sid }}_AT_{{ oracle_sid }}"
-    duplicate_standby_tns:    "{{ oracle_sid }}_AT_{{ region | upper }}"
+    duplicate_db_unique_name: "{{ oracle_sid }}_AT_{{ target_region }}"
+    duplicate_primary_tns:    "{{ oracle_sid }}_AT_{{ source_region }}"
+    duplicate_standby_tns:    "{{ oracle_sid }}_AT_{{ target_region }}"
+    duplicate_aux_host: "{{ inventory_hostname }}"
     duplicate_listener_port: 1530
 
     duplicate_pfile:        "/home/oracle/init{{ oracle_sid }}.ora"
@@ -24,14 +28,12 @@
     duplicate_spfile_asm:   "+XDATA/{{ duplicate_db_unique_name }}/spfile{{ duplicate_db_unique_name }}.ora"
 
     dg_configuration_name: "{{ oracle_sid }}"
-    dg_primary_database:   "{{ oracle_sid }}_AT_{{ oracle_sid }}"
-    dg_standby_database:    "{{ oracle_sid }}_AT_{{ region | upper }}"
+    dg_primary_database:   "{{ oracle_sid }}_AT_{{ source_region }}"
+    dg_standby_database:   "{{ oracle_sid }}_AT_{{ target_region }}"
     dg_primary_connect_identifier: "{{ duplicate_primary_tns }}"
     dg_standby_connect_identifier: "{{ duplicate_standby_tns }}"
     dg_dgmgrl_user: sys
     dg_dgmgrl_as: sysdba
-
-    listener_static_registration: "(SID_LIST=(SID_DESC=(ORACLE_HOME={{ oracle_home }})(SID_NAME={{ oracle_sid }})(SERVICE_NAME={{ duplicate_standby_tns }})))"
 
   any_errors_fatal: true
 
@@ -45,11 +47,56 @@
       oracle_gi_facts:
         oracle_home: "{{ oracle_home }}"        
       register: _oracle_gi_facts
-      tags: [allways,duplicate, precheck]
+      tags: [always, duplicate, precheck]
       
     - name: GI facts
       debug: var=_oracle_gi_facts
-      tags: [allways,duplicate, precheck]
+      tags: [always, duplicate, precheck]
+
+    - name: Derive GI home and listener names from GI facts
+      set_fact:
+        oracle_crs_home_derived: "{{ _oracle_gi_facts.ansible_facts.oracle_gi_facts.oracle_crs_home }}"
+        listener_ora_path: "{{ _oracle_gi_facts.ansible_facts.oracle_gi_facts.oracle_crs_home }}/network/admin/listener.ora"
+        duplicate_listener_name: >-
+          {{
+            (
+              _oracle_gi_facts.ansible_facts.oracle_gi_facts.local_listener
+              | selectattr('tcp', 'defined')
+              | selectattr('tcp', 'equalto', (duplicate_listener_port | string))
+              | map(attribute='name')
+              | list
+              | first
+            )
+            | default('LISTENER')
+          }}
+      tags: [always, duplicate, precheck]
+
+    - name: Show derived listener variables
+      debug:
+        msg:
+          - "listener_ora_path={{ listener_ora_path }}"
+          - "duplicate_listener_name={{ duplicate_listener_name }}"
+          - "listener_static_alias=SID_LIST_{{ duplicate_listener_name }}"
+      tags: [always, duplicate, precheck]
+
+    - name: Ensure static registration for auxiliary DB exists in GI listener.ora
+      oracle_tnsnames:
+        path: "{{ listener_ora_path }}"
+        alias: "SID_LIST_{{ duplicate_listener_name }}"
+        whole_value: "(SID_LIST=(SID_DESC=(ORACLE_HOME={{ oracle_home }})(SID_NAME={{ oracle_sid }})(SERVICE_NAME={{ duplicate_standby_tns }})))"
+      register: listener_static_registration
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      tags: [always, duplicate, precheck]
+
+    - name: Restart duplicate listener after static registration change
+      oracle_crs_listener:
+        name: "{{ duplicate_listener_name }}"
+        state: restarted
+      become_user: "{{ oracle_os_user }}"
+      become: true
+      when: listener_static_registration.changed
+      tags: [always, duplicate, precheck]
       
     - name: Check whether standby DB resource already exists in CRS (check mode)
       oracle_crs_db:
@@ -59,21 +106,21 @@
       register: duplicate_crs_presence
       become_user: "{{ oracle_os_user }}"
       become: true
-      tags: [allways,duplicate, precheck]
+      tags: [always, duplicate, precheck]
 
     - debug: var=duplicate_crs_presence
-      tags: [allways,duplicate, precheck]
+      tags: [always, duplicate, precheck]
 
     - name: "set_fact: database_duplicated={{ duplicate_crs_presence.changed }}"
       set_fact:
         database_duplicated: "{{ duplicate_crs_presence.changed }}"
-      tags: [allways,duplicate, precheck]
+      tags: [always, duplicate, precheck]
       
     - name: Ensure AUX connect descriptor exists in local tnsnames.ora
       oracle_tnsnames:
         path: /home/oracle/.tnsnames.ora
         alias: "{{ duplicate_db_unique_name}}_AUX"
-        whole_value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1530))(CONNECT_DATA=(SID={{ oracle_sid }})(UR=A)))'
+        whole_value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ duplicate_aux_host }})(PORT={{ duplicate_listener_port }}))(CONNECT_DATA=(SID={{ oracle_sid }})(UR=A)))'
       become_user: "{{ oracle_os_user }}"
       become: true
       tags: [duplicate, files]
