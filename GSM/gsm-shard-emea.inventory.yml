@@ -4,12 +4,12 @@ all:
       address: 192.168.8.223
       oracle_release: 26ai
       oracle_install_type: restart
-      
+      region: EMEA
   children:
-    oracle:
-      hosts:
-        gsm-shard-emea:
-      vars:
+    # oracle:
+    #   hosts:
+    #     gsm-shard-emea:
+    #   vars:
 
   vars:
     oracle_url_base: http://kicklinux9/oracle/26ai/

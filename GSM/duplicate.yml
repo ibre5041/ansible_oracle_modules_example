@@ -11,24 +11,27 @@
     oracle_db_ver_path: 23.26.1.0.0
     oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
 
-    duplicate_db_name: EMEA
-    duplicate_db_unique_name: EMEA_AT_APAC
-    duplicate_primary_tns: EMEA_AT_EMEA
-    duplicate_standby_tns: EMEA_AT_APAC
+    oracle_sid: EMEA
+    duplicate_db_name:        "{{ oracle_sid }}"
+    duplicate_db_unique_name: "{{ oracle_sid }}_AT_{{ region | upper }}"
+    duplicate_primary_tns:    "{{ oracle_sid }}_AT_{{ oracle_sid }}"
+    duplicate_standby_tns:    "{{ oracle_sid }}_AT_{{ region | upper }}"
     duplicate_listener_port: 1530
 
-    duplicate_pfile: /home/oracle/initEMEA.ora
-    duplicate_rman_cmdfile: /home/oracle/emea_duplicate.rman
-    duplicate_rman_log: /home/oracle/emea_duplicate.log
-    duplicate_spfile_asm: '+XDATA/EMEA_AT_APAC/spfileEMEA_AT_APAC.ora'
+    duplicate_pfile:        "/home/oracle/init{{ oracle_sid }}.ora"
+    duplicate_rman_cmdfile: "/home/oracle/{{ oracle_sid | lower }}_duplicate.rman"
+    duplicate_rman_log:     "/home/oracle/{{ oracle_sid | lower }}_duplicate.log"
+    duplicate_spfile_asm:   "+XDATA/{{ duplicate_db_unique_name }}/spfile{{ duplicate_db_unique_name }}.ora"
 
-    dg_configuration_name: EMEA
-    dg_primary_database: EMEA_AT_EMEA
-    dg_standby_database: EMEA_AT_APAC
+    dg_configuration_name: "{{ oracle_sid }}"
+    dg_primary_database:   "{{ oracle_sid }}_AT_{{ oracle_sid }}"
+    dg_standby_database:    "{{ oracle_sid }}_AT_{{ region | upper }}"
     dg_primary_connect_identifier: "{{ duplicate_primary_tns }}"
     dg_standby_connect_identifier: "{{ duplicate_standby_tns }}"
     dg_dgmgrl_user: sys
     dg_dgmgrl_as: sysdba
+
+    listener_static_registration: "(SID_LIST=(SID_DESC=(ORACLE_HOME={{ oracle_home }})(SID_NAME={{ oracle_sid }})(SERVICE_NAME={{ duplicate_standby_tns }})))"
 
   any_errors_fatal: true
 
@@ -37,6 +40,17 @@
       tags: [always, default_vars_only]
 
   tasks:
+
+    - name: Return GI facts
+      oracle_gi_facts:
+        oracle_home: "{{ oracle_home }}"        
+      register: _oracle_gi_facts
+      tags: [allways,duplicate, precheck]
+      
+    - name: GI facts
+      debug: var=_oracle_gi_facts
+      tags: [allways,duplicate, precheck]
+      
     - name: Check whether standby DB resource already exists in CRS (check mode)
       oracle_crs_db:
         name: "{{ duplicate_db_unique_name }}"
@@ -45,16 +59,21 @@
       register: duplicate_crs_presence
       become_user: "{{ oracle_os_user }}"
       become: true
-      tags: [duplicate, precheck]
+      tags: [allways,duplicate, precheck]
 
     - debug: var=duplicate_crs_presence
-      tags: [duplicate, precheck]
+      tags: [allways,duplicate, precheck]
+
+    - name: "set_fact: database_duplicated={{ duplicate_crs_presence.changed }}"
+      set_fact:
+        database_duplicated: "{{ duplicate_crs_presence.changed }}"
+      tags: [allways,duplicate, precheck]
       
     - name: Ensure AUX connect descriptor exists in local tnsnames.ora
       oracle_tnsnames:
         path: /home/oracle/.tnsnames.ora
-        alias: EMEA_AT_APAC_AUX
-        whole_value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1530))(CONNECT_DATA=(SID=EMEA)(UR=A)))'
+        alias: "{{ duplicate_db_unique_name}}_AUX"
+        whole_value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1530))(CONNECT_DATA=(SID={{ oracle_sid }})(UR=A)))'
       become_user: "{{ oracle_os_user }}"
       become: true
       tags: [duplicate, files]
@@ -169,6 +188,7 @@
         ORACLE_SID: "{{ duplicate_db_name }}"
       become_user: "{{ oracle_os_user }}"
       become: true
+      when: not duplicate_crs_presence.changed      
       tags: [duplicate, post]
 
     - name: Print where RMAN output log is stored
@@ -188,6 +208,7 @@
         connect_identifier: "{{ dg_primary_connect_identifier }}"
       become_user: "{{ oracle_os_user }}"
       become: true
+      when: not duplicate_crs_presence.changed      
       tags: [duplicate, dg]
 
     - name: Add EMEA standby database into Data Guard configuration
@@ -201,6 +222,7 @@
         connect_identifier: "{{ dg_standby_connect_identifier }}"
       become_user: "{{ oracle_os_user }}"
       become: true
+      when: not duplicate_crs_presence.changed      
       tags: [duplicate, dg]
 
     - name: Enable Data Guard broker configuration
