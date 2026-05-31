@@ -1,7 +1,5 @@
 ---
 
-# TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
-
 - hosts: all
   collections:
     - ibre5041.ansible_oracle_modules    

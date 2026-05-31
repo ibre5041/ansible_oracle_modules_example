@@ -1,0 +1,51 @@
+---
+
+# Drop a single Oracle database, identified by its db_unique_name.
+#
+# Usage:
+#   ansible-playbook drop_database.yml -i <inventory> -e db_unique_name=EMEA_AT_EMEA
+#
+# db_name defaults to the leading component of db_unique_name
+# (EMEA_AT_EMEA -> EMEA, CATALOG_RW -> CATALOG). Override with
+# -e db_name=... when that naming convention does not apply.
+
+- hosts: all
+  collections:
+    - ibre5041.ansible_oracle_modules
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    password: AcrorA123456__
+    oracle_db_ver_path: 23.26.1.0.0
+    oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
+    db_name: "{{ db_unique_name.split('_')[0] }}"
+
+  any_errors_fatal: true
+
+  roles:
+  - role: default_vars_only
+    tags: [always, default_vars_only]
+
+  environment:
+    ORACLE_HOME: "{{ oracle_home }}"
+
+  tasks:
+    - name: Ensure db_unique_name was provided
+      assert:
+        that:
+          - db_unique_name is defined
+          - db_unique_name | length > 0
+        fail_msg: "Pass the database to drop with -e db_unique_name=<DB_UNIQUE_NAME>"
+      tags: [oracledb, dbca]
+
+    - name: "Drop database {{ db_unique_name }} (db_name {{ db_name }})"
+      oracle_db:
+        oracle_home: "{{ oracle_home }}"
+        db_name: "{{ db_name }}"
+        db_unique_name: "{{ db_unique_name }}"
+        sys_password: "{{ password }}"
+        state: absent
+      tags: [oracledb, dbca]
+      become_user: "{{ oracle_os_user }}"
+      become: true

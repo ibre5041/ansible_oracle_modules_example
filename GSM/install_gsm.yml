@@ -1,7 +1,5 @@
 ---
 
-# TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
-
 - hosts: all
   collections:
     - ibre5041.ansible_oracle_modules    
@@ -34,8 +32,6 @@
       group: "{{ oracle_os_group }}"
       #recurse: yes
       mode: '0755'
-    
-
 
   - name: check if Oracle GSM  unpacked
     stat:

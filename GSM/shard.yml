@@ -1,7 +1,5 @@
 ---
 
-# TODO: setcap cap_net_raw+ep  /usr/bin/ping (on Centos8)
-
 - hosts: all
   collections:
     - ibre5041.ansible_oracle_modules    
@@ -11,8 +9,10 @@
     oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
     #oracle_sid: "APAC"
     wallet_location: "/home/oracle/wallet.shard"
+    db_name: "{{ oracle_sid }}"
     db_unique_name: '{{ oracle_sid }}_AT_{{ region | upper }}'
-    
+    db_spfile: "+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora"
+
   any_errors_fatal: true
 
   roles:    
@@ -28,7 +28,7 @@
     - name: "{{ oracle_sid }} create database"
       oracle_db:
         oracle_home: "{{ oracle_home }}"
-        db_name: '{{ oracle_sid }}'
+        db_name: "{{ db_name }}"
         sid: '{{ oracle_sid }}'
         db_unique_name: "{{ db_unique_name }}"
         sys_password: "{{ password }}"
@@ -61,7 +61,7 @@
         oracle_home: "{{ oracle_home }}"
         oracle_sid: "{{ oracle_sid }}"
         #oracle_db_name: "{{ db_unique_name }}"
-        sql: "create spfile='+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora' from memory"
+        sql: "create spfile='{{ db_spfile }}' from memory"
       when: _database.changed and oracle_db_state == 'present'
       tags: [oracledb, dbca]
       
@@ -72,7 +72,7 @@
         group: oinstall
         mode: '0640'
         content: |
-          spfile='+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora'
+          spfile='{{ db_spfile }}'
       when: _database.changed          
       tags: [oracledb, dbca]
       
@@ -96,7 +96,7 @@
       oracle_crs_db:
         name: "{{ db_unique_name }}"
         state: restarted
-        spfile: "+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora"
+        spfile: "{{ db_spfile }}"
       when: _database.changed
       tags: [oracledb]
       
@@ -188,8 +188,8 @@
     - name: "{{ oracle_sid }} restart database"
       oracle_db:
         oracle_home: "{{ oracle_home }}"
-        db_name: '{{ oracle_sid }}'
-        db_unique_name: '{{ oracle_sid }}_AT_{{ oracle_sid }}'
+        db_name: "{{ db_name }}"
+        db_unique_name: "{{ db_unique_name }}"
         #sys_password: "{{ password }}"
         state: "{{ oracle_db_state | default('restarted') }}"
       tags: [oracledb]

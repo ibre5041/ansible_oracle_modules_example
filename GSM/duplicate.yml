@@ -3,33 +3,36 @@
 - hosts: all
   collections:
     - ibre5041.ansible_oracle_modules
-  become: true
   vars:
     password: AcrorA123456__
     oracle_db_ver_path: 23.26.1.0.0
     oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
 
     oracle_sid: EMEA
-    source_region: EMEA
-    target_region: "{{ region | upper }}"
+    db_name: "{{ oracle_sid }}"
 
-    duplicate_db_name:        "{{ oracle_sid }}"
-    duplicate_db_unique_name: "{{ oracle_sid }}_AT_{{ target_region }}"
-    duplicate_primary_tns:    "{{ oracle_sid }}_AT_{{ source_region }}"
-    duplicate_standby_tns:    "{{ oracle_sid }}_AT_{{ target_region }}"
+    # The duplicate operation is always EMEA(primary) -> APAC(standby).
+    # source_region/target_region are properties of the operation, NOT of the
+    # host that runs the play. The host's own region comes from the inventory
+    # var 'region' (gsm-shard-emea -> EMEA, gsm-shard-apac -> APAC).
+    source_region: EMEA
+    target_region: APAC
+
+    # db_unique_name local to THIS host (same formula as shard.yml). On the
+    # standby host (region == target_region) it equals standby_db_unique_name.
+    db_unique_name:         "{{ oracle_sid }}_AT_{{ region | upper }}"
+    primary_db_unique_name: "{{ oracle_sid }}_AT_{{ source_region }}"
+    standby_db_unique_name: "{{ oracle_sid }}_AT_{{ target_region }}"
+    db_spfile:              "+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora"
+
     duplicate_aux_host: "{{ inventory_hostname }}"
-    duplicate_listener_port: 1530
+    shard_listener_port: 1530
 
     duplicate_pfile:        "/home/oracle/init{{ oracle_sid }}.ora"
     duplicate_rman_cmdfile: "/home/oracle/{{ oracle_sid | lower }}_duplicate.rman"
     duplicate_rman_log:     "/home/oracle/{{ oracle_sid | lower }}_duplicate.log"
-    duplicate_spfile_asm:   "+XDATA/{{ duplicate_db_unique_name }}/spfile{{ oracle_sid }}.ora"
 
     dg_configuration_name: "{{ oracle_sid }}"
-    dg_primary_database:   "{{ oracle_sid }}_AT_{{ source_region }}"
-    dg_standby_database:   "{{ oracle_sid }}_AT_{{ target_region }}"
-    dg_primary_connect_identifier: "{{ duplicate_primary_tns }}"
-    dg_standby_connect_identifier: "{{ duplicate_standby_tns }}"
     dg_dgmgrl_user: sys
     dg_dgmgrl_as: sysdba
 
@@ -39,7 +42,7 @@
     ORACLE_SID: "{{ oracle_sid }}"
   become_user: "{{ oracle_os_user }}"
   become: true
-    
+
   any_errors_fatal: true
 
   roles:
@@ -50,10 +53,10 @@
 
     - name: Return GI facts
       oracle_gi_facts:
-        oracle_home: "{{ oracle_home }}"        
+        oracle_home: "{{ oracle_home }}"
       register: _oracle_gi_facts
       tags: [always, duplicate, precheck]
-      
+
     - name: GI facts
       debug: var=_oracle_gi_facts
       tags: [always, duplicate, precheck]
@@ -67,7 +70,7 @@
             (
               _oracle_gi_facts.ansible_facts.oracle_gi_facts.local_listener
               | selectattr('tcp', 'defined')
-              | selectattr('tcp', 'equalto', (duplicate_listener_port | string))
+              | selectattr('tcp', 'equalto', (shard_listener_port | string))
               | map(attribute='name')
               | list
               | first
@@ -82,6 +85,8 @@
           - "listener_ora_path={{ listener_ora_path }}"
           - "duplicate_listener_name={{ duplicate_listener_name }}"
           - "listener_static_alias=SID_LIST_{{ duplicate_listener_name }}"
+          - "primary_db_unique_name={{ primary_db_unique_name }}"
+          - "standby_db_unique_name={{ standby_db_unique_name }}"
       tags: [always, duplicate, precheck]
 
     - name: "{{ oracle_sid }} tnsnames.ora"
@@ -109,10 +114,10 @@
         - EMEA_AT_APAC_AUX
         - APAC_AT_APAC_AUX
       register: _
-      
+
     - name: Check whether standby DB resource already exists in CRS (check mode)
       oracle_crs_db:
-        name: "{{ duplicate_db_unique_name }}"
+        name: "{{ standby_db_unique_name }}"
         state: absent
       check_mode: true
       register: duplicate_crs_presence
@@ -132,26 +137,26 @@
       oracle_tnsnames:
         path: "{{ listener_ora_path }}"
         alias: "SID_LIST_{{ duplicate_listener_name }}"
-        whole_value: "(SID_LIST=(SID_DESC=(ORACLE_HOME={{ oracle_home }})(SID_NAME={{ oracle_sid }})(SERVICE_NAME={{ duplicate_standby_tns }})))"
+        whole_value: "(SID_LIST=(SID_DESC=(ORACLE_HOME={{ oracle_home }})(SID_NAME={{ oracle_sid }})(SERVICE_NAME={{ standby_db_unique_name }})))"
       register: listener_static_registration
-      when: not database_present and region == 'APAC'
+      when: not database_present and region == target_region
       tags: [always, duplicate, precheck]
 
     - name: Restart duplicate listener after static registration change
       oracle_crs_listener:
         name: "{{ duplicate_listener_name }}"
         state: restarted
-      when: listener_static_registration.changed and not database_present and region == 'APAC'
+      when: listener_static_registration.changed and not database_present and region == target_region
       tags: [always, duplicate, precheck]
-      
+
     - name: Ensure AUX connect descriptor exists in local tnsnames.ora
       oracle_tnsnames:
         path: /home/oracle/.tnsnames.ora
-        alias: "{{ duplicate_db_unique_name}}_AUX"
-        whole_value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ duplicate_aux_host }})(PORT={{ duplicate_listener_port }}))(CONNECT_DATA=(SID={{ oracle_sid }})(UR=A)))'
+        alias: "{{ standby_db_unique_name }}_AUX"
+        whole_value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ duplicate_aux_host }})(PORT={{ shard_listener_port }}))(CONNECT_DATA=(SID={{ oracle_sid }})(UR=A)))'
       tags: [duplicate, files]
 
-    - name: Create init file for EMEA auxiliary instance
+    - name: Create init file for auxiliary standby instance
       copy:
         dest: "{{ duplicate_pfile }}"
         owner: "{{ oracle_os_user }}"
@@ -159,8 +164,8 @@
         mode: '0640'
         content: |
           *.compatible='23.6.0'
-          *.db_name='{{ duplicate_db_name }}'
-          *.db_unique_name='{{ duplicate_db_unique_name }}'
+          *.db_name='{{ db_name }}'
+          *.db_unique_name='{{ standby_db_unique_name }}'
           *.db_create_file_dest='+XDATA'
           *.db_recovery_file_dest='+XDATA'
           *.db_recovery_file_dest_size=12102m
@@ -172,9 +177,9 @@
           *.sga_target=4g
           *.standby_file_management='AUTO'
           *.dg_broker_start=TRUE
-          *.local_listener='(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ duplicate_listener_port }}))'
+          *.local_listener='(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ shard_listener_port }}))'
           *.wallet_root='/home/oracle/wallet.shard'
-      when: not database_present and region == 'APAC'
+      when: not database_present and region == target_region
       tags: [duplicate, nomount]
 
     - name: Copy password file from {{ ansible_hostname }}
@@ -184,7 +189,7 @@
         flat: true
       become_user: "{{ oracle_os_user }}"
       become: true
-      when: region == 'EMEA'
+      when: region == source_region
       tags: [duplicate, files, password]
 
     - name: Copy password file to {{ ansible_hostname }}
@@ -193,15 +198,15 @@
         dest: "{{ oracle_home }}/dbs/orapw{{ oracle_sid}}"
       become_user: "{{ oracle_os_user }}"
       become: true
-      when: region == 'APAC'
+      when: region == target_region
       tags: [duplicate, files, password]
-      
-    - name: Start EMEA auxiliary instance in NOMOUNT
+
+    - name: Start auxiliary standby instance in NOMOUNT
       oracle_sqldba:
         oracle_home: "{{ oracle_home }}"
-        oracle_db_name: "{{ duplicate_db_name }}"
+        oracle_db_name: "{{ db_name }}"
         sql: "startup force nomount pfile='{{ duplicate_pfile }}'"
-      when: not duplicate_crs_presence.changed and region == 'APAC'
+      when: not database_present and region == target_region
       tags: [duplicate, nomount]
 
     - name: Create RMAN duplicate command file
@@ -215,66 +220,64 @@
           {
             duplicate target database for standby from active database
             spfile
-            set db_name='{{ duplicate_db_name }}'
-            set db_unique_name='{{ duplicate_db_unique_name }}'
+            set db_name='{{ db_name }}'
+            set db_unique_name='{{ standby_db_unique_name }}'
             set standby_file_management='AUTO'
-            set instance_name='{{ duplicate_db_name }}'
+            set instance_name='{{ db_name }}'
             nofilenamecheck;
           }
-      when: not duplicate_crs_presence.changed and region == 'APAC'
+      when: not database_present and region == target_region
       tags: [duplicate, rman]
 
-    - name: Duplicate EMEA database from EMEA_AT_EMEA to EMEA_AT_APAC using RMAN
+    - name: Duplicate {{ primary_db_unique_name }} to {{ standby_db_unique_name }} using RMAN
       command: >
         {{ oracle_home }}/bin/rman
-        target /@{{ duplicate_primary_tns }}
-        auxiliary /@{{ oracle_sid }}_AT_{{ target_region }}_AUX
+        target /@{{ primary_db_unique_name }}
+        auxiliary /@{{ standby_db_unique_name }}_AUX
         cmdfile {{ duplicate_rman_cmdfile }}
         log {{ duplicate_rman_log }}
-      when: not database_present and region == 'APAC'
+      when: not database_present and region == target_region
       tags: [duplicate, rman]
 
     - name: Create spfile symlink in asm instance {{ oracle_sid }}
       oracle_sqldba:
         oracle_home: "{{ oracle_home }}"
         oracle_sid: "{{ oracle_sid }}"
-        #oracle_db_name: "{{ db_unique_name }}"
-        sql: "create spfile='{{ duplicate_spfile_asm }}' from memory"
-      when: not database_present and region == 'APAC'
+        sql: "create spfile='{{ db_spfile }}' from memory"
+      when: not database_present and region == target_region
       tags: [oracledb]
-      
+
     - name: Register duplicated standby DB in CRS
       oracle_crs_db:
-        name: "{{ duplicate_db_unique_name }}"
+        name: "{{ standby_db_unique_name }}"
         oraclehome: "{{ oracle_home }}"
-        dbname: "{{ duplicate_db_name }}"
-        instance: "{{ duplicate_db_name }}"
-        spfile: "{{ duplicate_spfile_asm }}"
+        dbname: "{{ db_name }}"
+        instance: "{{ db_name }}"
+        spfile: "{{ db_spfile }}"
         role: PHYSICAL_STANDBY
         startoption: MOUNT
         stopoption: IMMEDIATE
         state: present
-      when: not database_present and region == 'APAC'
+      when: not database_present and region == target_region
       tags: [duplicate, crs]
 
-    - name: Start duplicated standby DB in MOUNT mode
+    - name: Start duplicated standby DB in READ ONLY (Active Data Guard)
       oracle_crs_db:
-        name: "{{ duplicate_db_unique_name }}"
+        name: "{{ standby_db_unique_name }}"
         startoption: "READ ONLY"
         state: restarted
-      when: not database_present and region == 'APAC'
-      when: region == 'APAC'
+      when: not database_present and region == target_region
       tags: [duplicate, crs]
 
-    - name: Ensure local_listener points to EMEA listener endpoint on APAC host
+    - name: Ensure local_listener points to standby listener endpoint
       oracle_parameter:
         mode: sysdba
         name: local_listener
-        value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ duplicate_listener_port }}))'
+        value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ shard_listener_port }}))'
         state: present
         scope: both
         sid: '*'
-      when: not duplicate_crs_presence.changed      
+      when: region == target_region
       tags: [duplicate, post]
 
     - name: Print where RMAN output log is stored
@@ -285,87 +288,88 @@
     - name: Query Data Guard broker status
       oracle_dataguard:
         oracle_home: "{{ oracle_home }}"
-        dgmgrl_connect_identifier: "{{ dg_primary_connect_identifier }}"
+        dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
         state: status
         configuration_name: "{{ dg_configuration_name }}"
         database_name: "{{ dg_configuration_name }}"
-      when: database_present and region == 'EMEA'
+      when: region == source_region
       tags: [duplicate, dg]
       register: _
 
     - debug: var=_
-      when: database_present and region == 'EMEA'
-      
-    - name: Create Data Guard broker configuration {{ dg_configuration_name }} for primary {{ dg_primary_connect_identifier }}
+      when: region == source_region
+
+    - name: Create Data Guard broker configuration {{ dg_configuration_name }} for primary {{ primary_db_unique_name }}
       oracle_dataguard:
         oracle_home: "{{ oracle_home }}"
-        dgmgrl_connect_identifier: "{{ dg_primary_connect_identifier }}"
+        dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
         state: present
         configuration_name: "{{ dg_configuration_name }}"
-        primary_database: "{{ dg_primary_database }}"
-        connect_identifier: "{{ dg_primary_connect_identifier }}"
-      when: database_present and region == 'EMEA'
+        primary_database: "{{ primary_db_unique_name }}"
+        connect_identifier: "{{ primary_db_unique_name }}"
+      when: region == source_region
       tags: [duplicate, dg]
       register: _
 
     - debug: var=_
-      when: database_present and region == 'EMEA'
-      
-    - name: Add {{ oracle_sid }} standby database into Data Guard configuration for {{ dg_standby_connect_identifier }}
+      when: region == source_region
+
+    - name: Add {{ oracle_sid }} standby database into Data Guard configuration for {{ standby_db_unique_name }}
       oracle_dataguard:
         oracle_home: "{{ oracle_home }}"
-        dgmgrl_connect_identifier: "{{ dg_primary_connect_identifier }}"
+        dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
         state: present
-        database_name: "{{ dg_standby_database }}"
-        connect_identifier: "{{ dg_standby_connect_identifier }}"
-      when: database_present and region == 'EMEA'
+        database_name: "{{ standby_db_unique_name }}"
+        connect_identifier: "{{ standby_db_unique_name }}"
+      when: region == source_region
       tags: [duplicate, dg]
       register: _
 
     - debug: var=_
-      when: database_present and region == 'EMEA'
-      
+      when: region == source_region
+
     - name: Enable Data Guard broker configuration
       oracle_dataguard:
         oracle_home: "{{ oracle_home }}"
-        dgmgrl_connect_identifier: "{{ dg_primary_connect_identifier }}"
+        dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
         state: present
         enabled: true
-      when: database_present and region == 'EMEA'      
+      when: region == source_region
       tags: [duplicate, dg]
       register: _
 
     - debug: var=_
-      when: database_present and region == 'EMEA'
-      
+      when: region == source_region
+
     - name: Enable redo apply on standby via broker
       oracle_dataguard:
         oracle_home: "{{ oracle_home }}"
         dgmgrl_user: "{{ dg_dgmgrl_user }}"
         dgmgrl_as: "{{ dg_dgmgrl_as }}"
-        dgmgrl_connect_identifier: "{{ dg_primary_connect_identifier }}"
+        dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
         state: present
-        database_name: "{{ dg_standby_database }}"
+        database_name: "{{ standby_db_unique_name }}"
         database_state: apply-on
-      when: database_present and region == 'EMEA'      
+      when: region == source_region
       tags: [duplicate, dg]
       register: _
 
     - debug: var=_
-      when: database_present and region == 'EMEA'
-      
+      when: region == source_region
+
     - name: Show Data Guard configuration status
       oracle_dataguard:
         oracle_home: "{{ oracle_home }}"
         dgmgrl_user: "{{ dg_dgmgrl_user }}"
         dgmgrl_as: "{{ dg_dgmgrl_as }}"
-        dgmgrl_connect_identifier: "{{ dg_primary_connect_identifier }}"
+        dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
         state: status
-      when: database_present and region == 'EMEA'
+      when: region == source_region
       tags: [duplicate, dg]
+      register: dg_status
 
     - name: Print Data Guard status summary
       debug:
         var: dg_status.configuration
-      when: database_present and region == 'EMEA'        
+      when: region == source_region
       tags: [duplicate, dg]
