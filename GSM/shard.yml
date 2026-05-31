@@ -5,25 +5,24 @@
 - hosts: all
   collections:
     - ibre5041.ansible_oracle_modules    
-  become: yes
-  become_user: root
-  become_method: sudo
   vars:
     password: AcrorA123456__
     oracle_db_ver_path: 23.26.1.0.0
     oracle_home: "{{ oracle_install_dir_prod }}/{{ oracle_db_ver_path }}"
     #oracle_sid: "APAC"
     wallet_location: "/home/oracle/wallet.shard"
-
+    db_unique_name: '{{ oracle_sid }}_AT_{{ region | upper }}'
+    
   any_errors_fatal: true
 
   roles:    
   - role: default_vars_only
     tags: [always,default_vars_only]
-
   environment:
     ORACLE_HOME: "{{ oracle_home }}"
     ORACLE_SID:  "{{ oracle_sid }}"
+  become_user: "{{ oracle_os_user }}"
+  become: true
     
   tasks:      
     - name: "{{ oracle_sid }} create database"
@@ -31,7 +30,7 @@
         oracle_home: "{{ oracle_home }}"
         db_name: '{{ oracle_sid }}'
         sid: '{{ oracle_sid }}'
-        db_unique_name: '{{ oracle_sid }}_AT_{{ oracle_sid }}'
+        db_unique_name: "{{ db_unique_name }}"
         sys_password: "{{ password }}"
         #
         flashback: true
@@ -55,9 +54,28 @@
         state: "{{ oracle_db_state | default('present') }}"
         cdb: true
       tags: [oracledb, dbca]
-      become_user: "{{ oracle_os_user }}"
-      become: yes
+      register: _database
 
+    - name: Create spfile symlink in asm instance {{ oracle_sid }}
+      oracle_sqldba:
+        oracle_home: "{{ oracle_home }}"
+        oracle_sid: "{{ oracle_sid }}"
+        #oracle_db_name: "{{ db_unique_name }}"
+        sql: "create spfile='+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora' from memory"
+      when: _database.changed and oracle_db_state == 'present'
+      tags: [oracledb, dbca]
+      
+    - name: Create databases init.ora file
+      copy:
+        dest: "{{ oracle_home }}/dbs/init{{ oracle_sid }}.ora"
+        owner: "{{ oracle_os_user }}"
+        group: oinstall
+        mode: '0640'
+        content: |
+          spfile='+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora'
+      when: _database.changed          
+      tags: [oracledb, dbca]
+      
     - name: Manage online redologs
       oracle_redo:
         mode: sysdba
@@ -65,8 +83,6 @@
         size: 200M
         groups: 4
       tags: [oracledb, redo]
-      become_user: "{{ oracle_os_user }}"
-      become: yes
 
     - name: Manage standby redologs
       oracle_redo:
@@ -75,8 +91,14 @@
         size: 200M
         groups: 5
       tags: [oracledb, redo]
-      become_user: "{{ oracle_os_user }}"
-      become: yes
+
+    - name: Modify CRS config for {{ db_unique_name }} set spfile parameter
+      oracle_crs_db:
+        name: "{{ db_unique_name }}"
+        state: restarted
+        spfile: "+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora"
+      when: _database.changed
+      tags: [oracledb]
       
     - name: 'Create listener LISTENER_{{ oracle_sid }}'
       oracle_crs_listener:
@@ -85,8 +107,6 @@
         enabled: true
         state: started
       tags: [oracle_listener]
-      become_user: "{{ oracle_os_user }}"
-      become: yes
       
     - name: "{{ oracle_sid }} Ensure oracle parameters are set"
       oracle_parameter:
@@ -105,8 +125,6 @@
         - { name: dg_broker_start, value: 'TRUE', scope: both }
         - { name: local_listener, value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ shard_listener_port }}))', scope: both }
       tags: [oracledb, keystore]
-      become_user: "{{ oracle_os_user }}"
-      become: true
       register: oracle_parameter_results
 
     - name: "{{ oracle_sid }} Ensure gsmrootuser is unlocked and password is set"
@@ -120,8 +138,6 @@
         - gsmrootuser
         - gsmuser
       tags: [oracledb]
-      become_user: "{{ oracle_os_user }}"
-      become: true
 
     - name: "{{ oracle_sid }} Grant SYSDG and SYSBACKUP to gsmuser/gsmrootuser"
       oracle_grant:
@@ -135,8 +151,6 @@
         - gsmrootuser
         - gsmuser
       tags: [oracledb]
-      become_user: "{{ oracle_os_user }}"
-      become: true
       
     - name: "{{ oracle_sid }} Creates a pdb P{{ oracle_sid }}"
       oracle_pdb:
@@ -150,8 +164,6 @@
         pdb_admin_password: "{{ password }}"
         roles: [CONNECT, PDB_DBA]
       tags: [oracledb]
-      become_user: "{{ oracle_os_user }}"
-      become: true
 
     - name: "{{ oracle_sid }} Grant SYSDG and SYSBACKUP to gsmuser"
       oracle_grant:
@@ -163,8 +175,6 @@
           - SYSBACKUP
         state: present
       tags: [oracledb]
-      become_user: "{{ oracle_os_user }}"
-      become: true
 
     - name: GSMADMIN_INTERNAL
       oracle_grant:
@@ -174,8 +184,6 @@
         directory_privs:
           - read,write:data_pump_dir
       tags: [oracledb]
-      become_user: "{{ oracle_os_user }}"
-      become: true
       
     - name: "{{ oracle_sid }} restart database"
       oracle_db:
@@ -185,8 +193,6 @@
         #sys_password: "{{ password }}"
         state: "{{ oracle_db_state | default('restarted') }}"
       tags: [oracledb]
-      become_user: "{{ oracle_os_user }}"
-      become: true
 
     - name: "Create wallet directory {{ wallet_location}}"
       file:
@@ -194,8 +200,6 @@
         state: "{{ oracle_db_state | default('directory') }}"        
         group: oinstall
         mode: '0700'
-      become_user: "{{ oracle_os_user }}"
-      become: true
       tags: [oracledb, dbca]
       
     - name: "{{ oracle_sid }} tnsnames.ora"
@@ -211,8 +215,6 @@
         - { name: LISTENER_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT=1530)))'}
         - { name: LISTENER_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT=1531)))'}
       tags: [files]
-      become_user: "{{ oracle_os_user }}"
-      become: true
 
     - name: "{{ oracle_sid }} tnsnames.ora"
       oracle_tnsnames:
@@ -220,11 +222,9 @@
         alias: "{{ item.name }}"
         whole_value: "{{ item.value }}"
       loop:
-        - { name: EMEA_AT_APAC_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apax)(PORT=1530))(CONNECT_DATA=(SID=EMEA)(UR=A)))'}
+        - { name: EMEA_AT_APAC_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1530))(CONNECT_DATA=(SID=EMEA)(UR=A)))'}
         - { name: APAC_AT_EMEA_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1531))(CONNECT_DATA=(SID=APAC)(UR=A)))'}
       tags: [files]
-      become_user: "{{ oracle_os_user }}"
-      become: true
       
     - name: "Create wallet directory {{ wallet_location}}"
       file:
@@ -232,8 +232,6 @@
         state: directory
         group: oinstall
         mode: '0700'
-      become_user: "{{ oracle_os_user }}"
-      become: true
       tags: [oracledb, wallet]
 
     - name: Create TLS wallet with local auto-login
@@ -243,8 +241,6 @@
         wallet_location: "{{ wallet_location }}"
         wallet_password: "{{ password }}"
         auto_login: local_auto_login
-      become_user: "{{ oracle_os_user }}"
-      become: true
       tags: [oracledb, wallet]
       
     - name: Add primary DB credential for {{ item }}
@@ -257,8 +253,6 @@
         credential_db: "{{ item }}"
         credential_user: sys
         credential_password: "{{ password }}"
-      become_user: "{{ oracle_os_user }}"
-      become: true
       tags: [oracledb, wallet]
       loop:
         - EMEA_AT_EMEA
@@ -281,6 +275,5 @@
         - { name: 'WALLET_LOCATION', value: '(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY={{ wallet_location }})))' }
         - { name: 'SQLNET.WALLET_OVERRIDE', value: 'TRUE' }
       tags: [oracledb, wallet]
-      become_user: "{{ oracle_os_user }}"
-      become: true
+
       

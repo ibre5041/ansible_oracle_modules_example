@@ -9,10 +9,10 @@
 *.db_unique_name='APAC_AT_EMEA'
 *.dg_broker_start=TRUE
 *.diagnostic_dest='/oracle/u01/base'
-*.dispatchers='(PROTOCOL=TCP) (SERVICE=APACXDB)'
+#*.dispatchers='(PROTOCOL=TCP) (SERVICE=APACXDB)'
 *.enable_pluggable_database=true
 *.global_names=FALSE
-*.local_listener='-oraagent-dummy-'
+*.local_listener='(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=1530))'
 *.nls_language='AMERICAN'
 *.nls_territory='AMERICA'
 *.open_cursors=300
@@ -25,4 +25,4 @@
 *.sga_target=4g
 *.standby_file_management='AUTO'
 *.undo_tablespace='UNDOTBS1'
-*.wallet_root='/oracle/u01/base/admin'#User:SYS, Date:April 6, 2026, Reason:GDS/Sharding parameter used to maintain metadata
+*.wallet_root='/home/oracle/wallet.shard'

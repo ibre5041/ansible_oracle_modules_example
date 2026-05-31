@@ -13,6 +13,8 @@
   become_method: sudo
   vars:
     oracle_db_ver_path: 23.26.1.0.0
+    
+    
   any_errors_fatal: true
   roles:
   - role: default_vars_only
@@ -34,3 +36,6 @@
     
   - role: oracle_post_install
     tags: [ oraclepost ]
+
+  - role: sharddb
+    tags: [ sharddb ]    
