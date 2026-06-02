@@ -247,6 +247,17 @@
       when: not database_present and region == target_region
       tags: [oracledb]
 
+    - name: Create init.ora pointing to the ASM spfile for {{ oracle_sid }}
+      copy:
+        dest: "{{ oracle_home }}/dbs/init{{ oracle_sid }}.ora"
+        owner: "{{ oracle_os_user }}"
+        group: oinstall
+        mode: '0640'
+        content: |
+          spfile='{{ db_spfile }}'
+      when: not database_present and region == target_region
+      tags: [duplicate, oracledb]
+
     - name: Register duplicated standby DB in CRS
       oracle_crs_db:
         name: "{{ standby_db_unique_name }}"
@@ -268,6 +279,13 @@
         state: restarted
       when: not database_present and region == target_region
       tags: [duplicate, crs]
+
+    - name: Remove local spfile now that {{ oracle_sid }} runs on the ASM spfile
+      file:
+        path: "{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora"
+        state: absent
+      when: not database_present and region == target_region
+      tags: [duplicate, oracledb]
 
     - name: Ensure local_listener points to standby listener endpoint
       oracle_parameter:
@@ -341,27 +359,23 @@
     - debug: var=_
       when: region == source_region
 
-    - name: Enable redo apply on standby via broker
-      oracle_dataguard:
-        oracle_home: "{{ oracle_home }}"
-        dgmgrl_user: "{{ dg_dgmgrl_user }}"
-        dgmgrl_as: "{{ dg_dgmgrl_as }}"
-        dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
-        state: present
-        database_name: "{{ standby_db_unique_name }}"
-        database_state: apply-on
-      when: region == source_region
-      tags: [duplicate, dg]
-      register: _
-
-    - debug: var=_
-      when: region == source_region
+#    - name: Enable redo apply on standby via broker
+#      oracle_dataguard:
+#        oracle_home: "{{ oracle_home }}"
+#        dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
+#        state: present
+#        database_name: "{{ standby_db_unique_name }}"
+#        database_state: apply-on
+#      when: region == source_region
+#      tags: [duplicate, dg]
+#      register: _
+#
+#    - debug: var=_
+#      when: region == source_region
 
     - name: Show Data Guard configuration status
       oracle_dataguard:
         oracle_home: "{{ oracle_home }}"
-        dgmgrl_user: "{{ dg_dgmgrl_user }}"
-        dgmgrl_as: "{{ dg_dgmgrl_as }}"
         dgmgrl_connect_identifier: "{{ primary_db_unique_name }}"
         state: status
       when: region == source_region

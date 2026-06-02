@@ -12,9 +12,8 @@
 - hosts: all
   collections:
     - ibre5041.ansible_oracle_modules
-  become: yes
-  become_user: root
-  become_method: sudo
+  become_user: "{{ oracle_os_user }}"
+  become: true
   vars:
     password: AcrorA123456__
     oracle_db_ver_path: 23.26.1.0.0
@@ -47,5 +46,13 @@
         sys_password: "{{ password }}"
         state: absent
       tags: [oracledb, dbca]
-      become_user: "{{ oracle_os_user }}"
-      become: true
+
+    - name: "Delete wallet directory {{ item }}"
+      file:
+        path: "{{ item }}"
+        state: "absent"
+      loop:
+        - /home/oracle/wallet.catalog
+        - /home/oracle/wallet.catalog/tde
+        - /home/oracle/wallet.shard
+      tags: [oracledb, dbca]

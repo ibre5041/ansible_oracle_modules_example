@@ -11,7 +11,7 @@
     wallet_location: "/home/oracle/wallet.shard"
     db_name: "{{ oracle_sid }}"
     db_unique_name: '{{ oracle_sid }}_AT_{{ region | upper }}'
-    db_spfile: "+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid }}.ora"
+    db_spfile: "+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid | upper }}.ora"
 
   any_errors_fatal: true
 
@@ -62,7 +62,7 @@
         oracle_sid: "{{ oracle_sid }}"
         #oracle_db_name: "{{ db_unique_name }}"
         sql: "create spfile='{{ db_spfile }}' from memory"
-      when: _database.changed and oracle_db_state == 'present'
+      when: _database.changed
       tags: [oracledb, dbca]
       
     - name: Create databases init.ora file
@@ -99,7 +99,14 @@
         spfile: "{{ db_spfile }}"
       when: _database.changed
       tags: [oracledb]
-      
+
+    - name: Remove local spfile now that {{ oracle_sid }} runs on the ASM spfile
+      file:
+        path: "{{ oracle_home }}/dbs/spfile{{ oracle_sid }}.ora"
+        state: absent
+      when: _database.changed
+      tags: [oracledb]
+
     - name: 'Create listener LISTENER_{{ oracle_sid }}'
       oracle_crs_listener:
         name: 'LISTENER_{{ oracle_sid }}'

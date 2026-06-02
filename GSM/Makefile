@@ -23,7 +23,15 @@ shard:
 	ansible-playbook shard.yml -i gsm-shard-apac.inventory.yml -e oracle_sid=EMEA -e shard_listener_port=1530 --tags=oracle_listener,files,wallet
 	ansible-playbook shard.yml -i gsm-shard-apac.inventory.yml -e oracle_sid=APAC -e shard_listener_port=1531 --tags=oracle_listener,files,wallet
 
+duplicate:
+	ansible-playbook duplicate.yml -i gsm-shard-apac.inventory.yml -i gsm-shard-emea.inventory.yml -e oracle_sid=EMEA -e shard_listener_port=1530
+	ansible-playbook duplicate.yml -i gsm-shard-apac.inventory.yml -i gsm-shard-emea.inventory.yml -e oracle_sid=APAC -e shard_listener_port=1531
+
 clean_db:
-	ansible-playbook cat_26ai.yml  -i gsm-shard-emea.inventory.yml -e oracle_db_state=absent -e oracle_sid=CATALOG --tags dbca
-	ansible-playbook shard.yml -i gsm-shard-emea.inventory.yml     -e oracle_db_state=absent -e oracle_sid=EMEA --tags dbca
-	ansible-playbook shard.yml -i gsm-shard-emea.inventory.yml     -e oracle_db_state=absent -e oracle_sid=APAC --tags dbca
+	ansible-playbook drop_database.yml -i gsm-shard-emea.inventory.yml -e db_unique_name=CATALOG_RW
+	ansible-playbook drop_database.yml -i gsm-shard-emea.inventory.yml -e db_unique_name=EMEA_AT_EMEA
+	ansible-playbook drop_database.yml -i gsm-shard-emea.inventory.yml -e db_unique_name=APAC_AT_EMEA
+	ansible-playbook drop_database.yml -i gsm-shard-apac.inventory.yml -e db_unique_name=EMEA_AT_APAC
+	ansible-playbook drop_database.yml -i gsm-shard-apac.inventory.yml -e db_unique_name=APAC_AT_APAC
+
+

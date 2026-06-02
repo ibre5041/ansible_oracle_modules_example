@@ -1,6 +1,8 @@
 all:
   hosts:
     gsm-shard-emea:
+      ansible_host: gsm-shard-emea.prod.vmware.haf
+      ansible_user: oracle
       address: 192.168.8.223
       oracle_release: 26ai
       oracle_install_type: restart
