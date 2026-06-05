@@ -12,6 +12,7 @@
     db_name: "{{ oracle_sid }}"
     db_unique_name: '{{ oracle_sid }}_AT_{{ region | upper }}'
     db_spfile: "+XDATA/{{ db_unique_name }}/spfile{{ oracle_sid | upper }}.ora"
+    db_pfile: "{{ oracle_home }}/dbs/init{{ oracle_sid | upper }}.ora"
 
   any_errors_fatal: true
 
@@ -56,18 +57,25 @@
       tags: [oracledb, dbca]
       register: _database
 
+    - name: Create pfile {{ db_pfile }} from spfile
+      oracle_sqldba:
+        oracle_home: "{{ oracle_home }}"
+        oracle_sid: "{{ oracle_sid }}"
+        sql: "create pfile='{{ db_pfile }}' from spfile"
+      when: _database.changed
+      tags: [oracledb, dbca]
+
     - name: Create spfile symlink in asm instance {{ oracle_sid }}
       oracle_sqldba:
         oracle_home: "{{ oracle_home }}"
         oracle_sid: "{{ oracle_sid }}"
-        #oracle_db_name: "{{ db_unique_name }}"
-        sql: "create spfile='{{ db_spfile }}' from memory"
+        sql: "create spfile='{{ db_spfile }}' from pfile='{{ db_pfile }}'"
       when: _database.changed
       tags: [oracledb, dbca]
       
     - name: Create databases init.ora file
       copy:
-        dest: "{{ oracle_home }}/dbs/init{{ oracle_sid }}.ora"
+        dest: "{{ db_pfile }}"
         owner: "{{ oracle_os_user }}"
         group: oinstall
         mode: '0640'
