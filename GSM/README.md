@@ -67,4 +67,19 @@ In EMEA:
 
     srvctl modify database -d APAC_AT_EMEA -startoption 'READ ONLY'
 
+- You need to:
+  - check short vs. long hostname (for GSM you need full FQDN)
+    - select host_name from v$instance
+    - hostname
+    - show paramete local_listener
+    - tnsnames.ora, listener record
+    - listener.ora, listener record
+  - ON standby side, there is not w/o for PDB save state
+    - Open PDB manually or:
+    - The one built-in 26ai path that does manage PDB state at the standby side is DG PDB broker management, not a regular physical standby CDB. In that model, Oracle documents DGMGRL EDIT PLUGGABLE DATABASE <pdb> AT <db_unique_name> SET STATE = APPLY-ON|APPLY-OFF, and the broker can explicitly change standby PDB state.
+    - Use database trigger to OPEN PDB on standby side
+
+  - Switchover APAC database to APAC
+  - Check whether STANDBY database is in Flashback mode
+  
     

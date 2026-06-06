@@ -34,8 +34,8 @@ all:
     - adapter:
       pciSlotNumber: 224
       network: "Barn Network"      
-    ram: 16G
-    cpu: 2
+    ram: 32G
+    cpu: 4
 
     vmware:
       vm_folder: VmFolder

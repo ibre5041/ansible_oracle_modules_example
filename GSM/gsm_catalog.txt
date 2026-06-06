@@ -1,6 +1,6 @@
-create shardcatalog -repl DG -region R_EMEA -sharding USER -user gsmcatuser/AcrorA123456__ -database (DESCRIPTION=(CONNECT_TIMEOUT=5)(TRANSPORT_CONNECT_TIMEOUT=3)(RETRY_COUNT=3)(ADDRESS_LIST=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d.prod.vmware.haf)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=pcatalog)))
+create shardcatalog -repl DG -region R_EMEA -sharding USER -user gsmcatuser/AcrorA123456__ -database (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea.prod.vmware.haf)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=pcatalog)))
 
-add gsm -gsm sharddirector_emea -listener 1521 -pwd AcrorA123456__ -region R_EMEA -catalog (DESCRIPTION=(CONNECT_TIMEOUT=5)(TRANSPORT_CONNECT_TIMEOUT=3)(RETRY_COUNT=3)(ADDRESS_LIST=(LOAD_BALANCE=on)(ADDRESS=(PROTOCOL=TCP)(HOST=rhel9d.prod.vmware.haf)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=pcatalog)))
+add gsm -gsm sharddirector_emea -listener 1521 -pwd AcrorA123456__ -region R_EMEA -catalog (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea.prod.vmware.haf)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=pcatalog)))
 
 set gsm -gsm sharddirector_emea
 start gsm
@@ -11,4 +11,3 @@ add shardspace -shardspace S_APAC
 validate
 add invitedsubnet 192.168.8.0/24
 validate
-

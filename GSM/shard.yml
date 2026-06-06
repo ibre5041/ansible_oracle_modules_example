@@ -138,7 +138,7 @@
         - { name: global_names, value: 'FALSE', scope: both }
         - { name: db_files, value: 1024, scope: spfile }
         - { name: dg_broker_start, value: 'TRUE', scope: both }
-        - { name: local_listener, value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ shard_listener_port }}))', scope: both }
+        - { name: local_listener, value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_fqdn }})(PORT={{ shard_listener_port }}))', scope: both }
       tags: [oracledb, keystore]
       register: oracle_parameter_results
 
@@ -223,12 +223,12 @@
         alias: "{{ item.name }}"
         whole_value: "{{ item.value }}"
       loop:
-        - { name: EMEA_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_EMEA)))'}
-        - { name: EMEA_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_APAC)))'}
-        - { name: APAC_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_APAC)))'}
-        - { name: APAC_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_EMEA)))'}
-        - { name: LISTENER_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT=1530)))'}
-        - { name: LISTENER_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT=1531)))'}
+        - { name: EMEA_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea.prod.vmware.haf)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_EMEA)))'}
+        - { name: EMEA_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac.prod.vmware.haf)(PORT=1530))(CONNECT_DATA=(SERVICE_NAME=EMEA_AT_APAC)))'}
+        - { name: APAC_AT_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac.prod.vmware.haf)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_APAC)))'}
+        - { name: APAC_AT_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea.prod.vmware.haf)(PORT=1531))(CONNECT_DATA=(SERVICE_NAME=APAC_AT_EMEA)))'}
+        - { name: LISTENER_EMEA, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_fqdn }})(PORT=1530)))'}
+        - { name: LISTENER_APAC, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_fqdn }})(PORT=1531)))'}
       tags: [files]
 
     - name: "{{ oracle_sid }} tnsnames.ora"
@@ -237,8 +237,8 @@
         alias: "{{ item.name }}"
         whole_value: "{{ item.value }}"
       loop:
-        - { name: EMEA_AT_APAC_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac)(PORT=1530))(CONNECT_DATA=(SID=EMEA)(UR=A)))'}
-        - { name: APAC_AT_EMEA_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1531))(CONNECT_DATA=(SID=APAC)(UR=A)))'}
+        - { name: EMEA_AT_APAC_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-apac.prod.vmware.haf)(PORT=1530))(CONNECT_DATA=(SID=EMEA)(UR=A)))'}
+        - { name: APAC_AT_EMEA_AUX, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea.prod.vmware.haf)(PORT=1531))(CONNECT_DATA=(SID=APAC)(UR=A)))'}
       tags: [files]
       
     - name: "Create wallet directory {{ wallet_location}}"

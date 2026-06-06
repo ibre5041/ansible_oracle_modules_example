@@ -85,7 +85,7 @@
         - { name: standby_file_management, value: auto, scope: both }
         - { name: global_names, value: 'FALSE', scope: both }
         - { name: db_files, value: 1024, scope: spfile }
-        - { name: local_listener, value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT=1521))', scope: both }        
+        - { name: local_listener, value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_fqdn }})(PORT=1521))', scope: both }
       tags: [oracledb, keystore]
       become_user: "{{ oracle_os_user }}"
       become: true
@@ -188,8 +188,8 @@
         alias: "{{ item.name }}"
         whole_value: "{{ item.value }}"
       loop:
-        - { name: CATALOG,  value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=CATALOG)))'}
-        - { name: PCATALOG, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=PCATALOG)))'}
+        - { name: CATALOG,  value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea.prod.vmware.haf)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=CATALOG)))'}
+        - { name: PCATALOG, value: '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=gsm-shard-emea.prod.vmware.haf)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=PCATALOG)))'}
       tags: [files]
       become_user: "{{ oracle_os_user }}"
       become: true

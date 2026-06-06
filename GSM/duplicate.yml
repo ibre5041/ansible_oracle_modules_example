@@ -178,7 +178,7 @@
           *.sga_target=4g
           *.standby_file_management='AUTO'
           *.dg_broker_start=TRUE
-          *.local_listener='(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ shard_listener_port }}))'
+          *.local_listener='(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_fqdn }})(PORT={{ shard_listener_port }}))'
           *.wallet_root='/home/oracle/wallet.shard'
       when: not database_present and region == target_region
       tags: [duplicate, nomount]
@@ -300,7 +300,7 @@
       oracle_parameter:
         mode: sysdba
         name: local_listener
-        value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_hostname }})(PORT={{ shard_listener_port }}))'
+        value: '(ADDRESS=(PROTOCOL=TCP)(HOST={{ ansible_fqdn }})(PORT={{ shard_listener_port }}))'
         state: present
         scope: both
         sid: '*'
