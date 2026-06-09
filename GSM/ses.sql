@@ -1,4 +1,4 @@
-
+set line 180
 col GLOBAL_NAME for a16
 col DB_UNIQUE_NAME for a16
 col HOST_NAME for a20
@@ -17,3 +17,4 @@ FROM   global_name g,
        v$database d,
        v$instance i;
        
+exit

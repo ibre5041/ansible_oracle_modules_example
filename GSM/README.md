@@ -82,4 +82,10 @@ In EMEA:
   - Switchover APAC database to APAC
   - Check whether STANDBY database is in Flashback mode
   
+- CRS/HAS Config
+  - enable ONS
+  
+    srvctl enable ons
+    srvctl start ons
+    srvctl status ons
     
